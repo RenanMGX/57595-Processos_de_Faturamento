@@ -125,6 +125,8 @@ class Credential:
         return self.criar_cifra(text, -key)
         
 if __name__ == "__main__":
-    crd = Credential('Microsoft-RPA')
+    crd = Credential('IMOBME_QAS')
+    #crd = Credential('IMOBME_PRD')
+    
     
     print(crd.load())

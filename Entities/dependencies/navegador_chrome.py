@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.support.ui import Select
 from functions import P
 from time import sleep
 from typing import List, Union
@@ -14,9 +15,16 @@ import os
 class ElementNotFound(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
-
+        
+class PageError(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
 
 class NavegadorChrome(Chrome):
+    @property
+    def default_timeout(self):
+        return self.__default_timeout
+    
     """
     Classe que estende o navegador Chrome, adicionando configurações personalizadas.
     """
@@ -62,6 +70,9 @@ class NavegadorChrome(Chrome):
         
 
         super().__init__(options, service, keep_alive) #type: ignore
+        
+        self.__default_timeout = self.timeouts.page_load
+        
         self.speak:bool = speak 
         
     def find_element(
@@ -156,6 +167,22 @@ class NavegadorChrome(Chrome):
         
         print(P(f"({by=}, {value=}): não encontrado! -> erro será executado", color='red')) if self.speak else None
         raise ElementNotFound(f"({by=}, {value=}): não encontrado!")
+    
+    def get(self, url: str) -> None:
+        self.set_page_load_timeout(3)
+        for _ in range(10):
+            try:
+                result = super().get(url)
+                result = super().get(url)
+                sleep(1)
+                self.set_page_load_timeout(self.default_timeout)
+                return result
+            except:
+                if _ == 9:
+                    raise PageError("Página não encontrada!")
+        
+        
+        
 
 if __name__ == "__main__":
     pass
