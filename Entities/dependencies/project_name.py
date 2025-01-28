@@ -1,0 +1,1 @@
+PROJECT_NAME:str = "Processos de Faturamento"
