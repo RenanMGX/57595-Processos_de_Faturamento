@@ -15,15 +15,33 @@ import locale
 locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 
-class Imobme(Nav):    
+class Imobme(Nav):
+    """
+    Classe que representa interações com o sistema Imobme.
+    """    
     @property
     def base_url(self) -> str:
+        """
+        Retorna a parte inicial (base) da URL do sistema.
+
+        Returns:
+            str: URL base do sistema.
+        """
         if (url:=re.search(r'[A-z]+://[A-z0-9.]+/', self.__crd['url'])):
             return url.group()
         raise exceptions.UrlError("URL inválida!")
     
     @staticmethod
     def verify_login(func):
+        """
+        Decorator que verifica se o usuário está logado antes de executar a função.
+
+        Args:
+            func (Callable): Função a ser decorada.
+
+        Returns:
+            Callable: Função decorada.
+        """
         def wrap(*args, **kwargs):
             self:Imobme = args[0]
             
@@ -70,6 +88,15 @@ class Imobme(Nav):
         
     
     def __load_page(self, endpoint:str):
+        """
+        Constrói a URL final e carrega a página solicitada.
+
+        Args:
+            endpoint (str): Caminho adicional a ser anexado à URL base.
+
+        Returns:
+            None
+        """
         if not endpoint.endswith('/'):
             endpoint += '/'
         if endpoint.startswith('/'):
@@ -80,6 +107,15 @@ class Imobme(Nav):
         self.get(url)
         
     def __esperar_carregamento(self, *, initial_wait:Union[int, float]=1):
+        """
+        Aguarda o carregamento de elementos na página.
+
+        Args:
+            initial_wait (float): Tempo inicial de espera.
+
+        Returns:
+            None
+        """
         sleep(initial_wait)
         while self._find_element(By.ID, 'feedback-loader').text == 'Carregando':
             print(P("Aguardando carregar página...                ", color='yellow'), end='\r')
@@ -88,10 +124,34 @@ class Imobme(Nav):
     
     @verify_login     
     def _find_element(self, by=By.ID, value: str | None = None, *, timeout: int = 10, force: bool = False, wait_before: int | float = 0, wait_after: int | float = 0) -> WebElement:
+        """
+        Envolve find_element com verificação de login.
+
+        Args:
+            by: Tipo de busca (ex: By.ID, By.XPATH).
+            value (str | None): Valor para busca do elemento.
+            timeout (int): Tempo de tentativas em segundos.
+            force (bool): Retorna elemento HTML se não for encontrado.
+            wait_before (float): Intervalo antes da busca.
+            wait_after (float): Intervalo após a busca.
+
+        Returns:
+            WebElement: Elemento encontrado ou o HTML.
+        """
         return super().find_element(by, value, timeout=timeout, force=force, wait_before=wait_before, wait_after=wait_after)
     
     @verify_login  
     def cobranca(self, date: datetime, *, tamanho_mini_lista=10) -> bool:
+        """
+        Executa rotinas de cobrança para uma data específica.
+
+        Args:
+            date (datetime): Data para a qual será realizada a cobrança.
+            tamanho_mini_lista (int): Tamanho de cada lista de empreendimentos.
+
+        Returns:
+            bool: True se a cobrança for realizada com sucesso.
+        """
         self.__load_page('CalculoMensal/Cobranca')
         print(P("Aguardando carregar página...                           ", color='yellow'))
         
@@ -181,6 +241,16 @@ class Imobme(Nav):
 
     @verify_login
     def verificar_indices(self, *, date: datetime, lista_indices:List[str]) -> bool:
+        """
+        Verifica se os índices informados estão aprovados na data especificada.
+
+        Args:
+            date (datetime): Data de referência.
+            lista_indices (List[str]): Lista de nomes dos índices a serem verificados.
+
+        Returns:
+            bool: True se todos os índices estiverem aprovados, caso contrário False.
+        """
         lista_indices = deepcopy(lista_indices)
         self.__load_page('Indice/Valores')
         

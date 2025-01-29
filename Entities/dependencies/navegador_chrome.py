@@ -17,12 +17,21 @@ class ElementNotFound(Exception):
         super().__init__(*args)
         
 class PageError(Exception):
+    """
+    Exceção lançada quando ocorre falha no carregamento de página.
+    """
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
 class NavegadorChrome(Chrome):
     @property
     def default_timeout(self):
+        """
+        Retorna o tempo padrão de carregamento de página definido pelo navegador.
+
+        Returns:
+            int | float: Valor do timeout padrão.
+        """
         return self.__default_timeout
     
     """
@@ -169,6 +178,15 @@ class NavegadorChrome(Chrome):
         raise ElementNotFound(f"({by=}, {value=}): não encontrado!")
     
     def get(self, url: str) -> None:
+        """
+        Carrega a URL especificada com tentativas de reenvio.
+
+        Args:
+            url (str): Endereço da página que será carregada.
+
+        Returns:
+            None
+        """
         self.set_page_load_timeout(3)
         for _ in range(10):
             try:
