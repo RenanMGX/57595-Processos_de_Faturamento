@@ -6,9 +6,11 @@ from dependencies.credenciais import Credential
 from time import sleep
 from datetime import datetime
 from typing import List, Dict, Union
+from copy import deepcopy
 import exceptions
 import re
 import os
+import Entities.utils as utils
 import locale
 locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
@@ -72,13 +74,15 @@ class Imobme(Nav):
             endpoint += '/'
         if endpoint.startswith('/'):
             endpoint = endpoint[1:]
-            
-        self.get(os.path.join(self.base_url, endpoint))
         
-    def __esperar_carregamento(self, *, initial_wait:int=1):
+        url = os.path.join(self.base_url, endpoint)
+        print(P(f"Carregando página: {url}...          ", color='yellow'))  
+        self.get(url)
+        
+    def __esperar_carregamento(self, *, initial_wait:Union[int, float]=1):
         sleep(initial_wait)
         while self._find_element(By.ID, 'feedback-loader').text == 'Carregando':
-            print(P("Aguardando carregar página...", color='yellow'), end='\r')
+            print(P("Aguardando carregar página...                ", color='yellow'), end='\r')
             sleep(1)
         print(end='\r')
     
@@ -87,15 +91,17 @@ class Imobme(Nav):
         return super().find_element(by, value, timeout=timeout, force=force, wait_before=wait_before, wait_after=wait_after)
     
     @verify_login  
-    def cobranca(self, date: datetime) -> bool:
-        print("Função teste")
+    def cobranca(self, date: datetime, *, tamanho_mini_lista=10) -> bool:
         self.__load_page('CalculoMensal/Cobranca')
-        print(P("Aguardando carregar página...", color='yellow'))
+        print(P("Aguardando carregar página...                           ", color='yellow'))
         
         #import pdb;pdb.set_trace()
         self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[4]/div[1]/div/button').click()
         t_ul = self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[4]/div[1]/div/ul')
-        empreendimentos:List[str] = [element.text for element in t_ul.find_elements(By.TAG_NAME, 'li') if (element.text != '') and (element.text != 'Todos')]
+        lista_empreendimentos:List[str] = [element.text for element in t_ul.find_elements(By.TAG_NAME, 'li') if (element.text != '') and (element.text != 'Todos')]
+        
+        empreendimentos:List[List[str]] = utils.criar_listas_de_mini_listas(lista=lista_empreendimentos, tamanho_mini_lista=tamanho_mini_lista)
+        
         self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[4]/div[1]/div/button').click()
         
         cont = 0   
@@ -109,7 +115,7 @@ class Imobme(Nav):
                     
                     t_ul = self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[4]/div[1]/div/ul')
                     for element in [element for element in t_ul.find_elements(By.TAG_NAME, 'li') if (element.text != '') and (element.text != 'Todos')]:
-                        if element.text == empreendimento:
+                        if element.text in empreendimento:
                             element.click()
                     
                     
@@ -117,36 +123,36 @@ class Imobme(Nav):
                     #self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[4]/div[1]/div/ul/li[2]/a/label/input').click() # selecionar todos
                     #self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[4]/div[1]/div/ul/li[3]/a/label').click() # selecionar primeiro empreendimento
                     self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[4]/div[1]/div/button').click()
-                    print(P("Empreendimentos Selecionado...                  ", color='yellow'), end='\r')
+                    print(P(f"[{cont}/{len(empreendimentos)}] | Empreendimentos Selecionado...                  ", color='yellow'), end='\r')
                     
-                    self.__esperar_carregamento()        
+                    self.__esperar_carregamento(initial_wait=0.2)        
                     self._find_element(By.ID, 'Mes_chzn').click()
                     t_buscar_mes = self._find_element(By.XPATH, '//*[@id="Mes_chzn"]/div/div/input')
                     t_buscar_mes.clear()
                     t_buscar_mes.send_keys(date.strftime('%B').capitalize())
                     t_buscar_mes.send_keys(Keys.ENTER)
-                    print(P("Mês Selecionado...                 ", color='yellow'), end='\r')
+                    print(P(f"[{cont}/{len(empreendimentos)}] | Mês Selecionado...                 ", color='yellow'), end='\r')
                     
-                    self.__esperar_carregamento()
+                    self.__esperar_carregamento(initial_wait=0.2)
                     t_ano = self._find_element(By.ID, 'ano')
                     t_ano.clear()
                     t_ano.send_keys(date.strftime('%Y'))
-                    print(P("Ano Selecionado...                   ", color='yellow'), end='\r')
+                    print(P(f"[{cont}/{len(empreendimentos)}] | Ano Selecionado...                   ", color='yellow'), end='\r')
                     
-                    self.__esperar_carregamento()
+                    self.__esperar_carregamento(initial_wait=0.2)
                     t_periodo = self._find_element(By.ID, 'txtDataLancamento')
                     t_periodo.clear()
                     t_periodo.send_keys(date.strftime('%d%m%Y'))
                     self._find_element(By.XPATH, '//*[@id="Content"]/section/div/div/div/div[1]/h4').click()
-                    print(P("Período Selecionado...                 ", color='yellow'), end='\r')
+                    print(P(f"[{cont}/{len(empreendimentos)}] | Período Selecionado...                 ", color='yellow'), end='\r')
                     
-                    self.__esperar_carregamento()
+                    self.__esperar_carregamento(initial_wait=0.2)
                     self._find_element(By.ID, 'btnNovo').click()
-                    print(P("Procurando Faturamentos...               ", color='yellow'), end='\r')
+                    print(P(f"[{cont}/{len(empreendimentos)}] | Procurando Faturamentos...               ", color='yellow'), end='\r')
                     
-                    self.__esperar_carregamento()
+                    self.__esperar_carregamento(initial_wait=0.2)
                     self._find_element(By.ID, 'Salvar').click()
-                    print(P("Executando Faturamentos...                  ", color='yellow'), end='\r')
+                    print(P(f"[{cont}/{len(empreendimentos)}] | Executando Faturamentos...                  ", color='yellow'), end='\r')
                     
                     print(end='\r')
                     
@@ -157,8 +163,7 @@ class Imobme(Nav):
 
                     self.__esperar_carregamento()
                     if (t_alerta:=self._find_element(By.ID, 'divAlert').text):
-                        
-                        print(P(f"[{cont}/{len(empreendimentos)}]|empreendimento {empreendimento} foi finalizada!", color='green'))
+                        print(P(f"[{cont}/{len(empreendimentos)}] | {empreendimento} - {t_alerta}", color='cyan'))
                         #return True
                         
                     self.__esperar_carregamento()
@@ -173,8 +178,42 @@ class Imobme(Nav):
         
         print(P("Faturamentos realizados com sucesso!", color='green'))
         return True
-        # print(P("Erro desconhecido!", color='red'))
-        # raise exceptions.CobrancaError("Erro desconhecido!")
 
+    @verify_login
+    def verificar_indices(self, *, date: datetime, lista_indices:List[str]) -> bool:
+        lista_indices = deepcopy(lista_indices)
+        self.__load_page('Indice/Valores')
+        
+        self.__esperar_carregamento()
+        self._find_element(By.XPATH, '//*[@id="AgreementTabs"]/li[2]/a').click()
+        
+        # t_indices = self._find_element(By.ID, 'ddlIndiceBase_chzn')
+        # t_indices.click()
+        # lista_indices = [indice.text for indice in t_indices.find_elements(By.TAG_NAME, 'li') if indice.text != 'Todos']
+        # t_indices.click()
+        self.__esperar_carregamento()
+        self._find_element(By.ID, 'txtData').send_keys(date.strftime('%d%m%Y'))
+        self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[1]/h4').click()
+
+        self.__esperar_carregamento()
+        t_body = self._find_element(By.ID, 'tblIndiceAprovacao')
+        
+        for status in t_body.find_elements(By.TAG_NAME, 'tr'):
+            for indice in lista_indices:
+                if indice in status.text:
+                    if 'Aprovado' in status.text:
+                        lista_indices.remove(indice)
+                        
+        if not lista_indices:
+            print(P("Todos os indices estão aprovados!", color='green'))
+            return True
+        
+        print(P("Os seguintes indices não estão aprovados:", color='red'))
+        print(P(lista_indices, color='red'))
+        return False
+        
+        
+        
+        
 if __name__ == '__main__':
     pass
