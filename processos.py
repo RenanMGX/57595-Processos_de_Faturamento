@@ -3,7 +3,7 @@ from Entities.etapas import Etapa
 from Entities.dependencies.functions import Functions
 import Entities.utils as utils
 from Entities.sap import SAP
-from Entities.tratar_dados import TratarDados
+from Entities.tratar_dados import TratarDados, pd
 from typing import List, Dict
 from time import sleep
 
@@ -15,18 +15,18 @@ lista_indices = [
     r'0,5% a.m.',
     r'JUROS 1%',
     r'JUROS 0,5%',
-    'INCC',
-    'CDI',
+    r'INCC',
+    r'CDI',
     r'CDI 3% a.a.',
-    'IPCA',
-    'IPCA 12a.a.',
-    'IPCA 1%',
-    'POUPA 12',
-    'POUPA 15',
-    'POUPA 28',
-    'IGPM',
-    'IGPM 0,5%',
-    'IGPM 1%',
+    r'IPCA',
+    r'IPCA 12a.a.',
+    r'IPCA 1%',
+    r'POUPA 12',
+    r'POUPA 15',
+    r'POUPA 28',
+    r'IGPM',
+    r'IGPM 0,5%',
+    r'IGPM 1%',
 ]
 
 etapa = Etapa()
@@ -55,7 +55,11 @@ def segundo_rel_partidas_individuais(date: datetime=datetime.now()):
     if etapa.executed_month('imobme_cobranca_global'):
         if not etapa.executed_month('rel_partidas_individuais'):
             sap = SAP()
-            file_path = sap.relatorio_partidas_individuais_cliente(datetime(2024, 11, 1))
+            try:
+                file_path = sap.relatorio_partidas_individuais_cliente(utils.primeiro_dia_proximo_mes(date))
+            except Exception as err:
+                print(P(f"    Erro ao executar o processo! -> {err}", color='red'))
+                return False
             
             if file_path:
                 docs:list = TratarDados.sep_dados_por_empresas(file_path)
@@ -93,7 +97,7 @@ def terceiro_gerar_arquivos_de_remessa():
                 try:
                     sap.gerar_arquivos_de_remessa(data=dado)
                 except Exception as err:
-                    print(P(f"Erro ao executar o processo! -> {err}", color='red'))
+                    print(P(f"    Erro ao executar o processo! -> {err}", color='red'))
                     continue
             sap.fechar_sap()
             etapa.save('gerar_arquivos_de_remessa')
@@ -103,6 +107,57 @@ def terceiro_gerar_arquivos_de_remessa():
             print(P("    Geração de arquivos de remessa já foi executada este mês!", color='cyan'))
     else:
         print(P("    Relatório partidas individuais não foi executado este mês!", color='magenta'))
+        
+def quarto_verificar_lancamentos(date: datetime):
+    print(P(f"Executando verificação de lançamentos em {date.strftime('%d/%m/%Y')}", color='yellow'))
+    
+    if etapa.executed_month('gerar_arquivos_de_remessa'):
+        if not etapa.executed_month('verificar_lancamentos'):
+
+            for _ in range(5):
+                path = SAP().relatorio_partidas_individuais_cliente(utils.primeiro_dia_proximo_mes(date))
+                df = pd.read_excel(path)
+                os.unlink(path)
+                df = df.dropna(subset=['Conta'])
+                if df[df['Solicitação de L/C'].isna()].empty:
+                   etapa.save('verificar_lancamentos')
+                   print(P("    Verificação de lançamentos executada com sucesso!", color='green'))
+                   return True
+                
+                sleep(15)
+            
+            print(P("    Erro ao executar verificação de lançamentos!", color='red'))
+        else:
+            print(P("    Verificação de lançamentos já foi executada este mês!", color='cyan'))
+    else:
+        print(P("    Geração de arquivos de remessa não foi executada este mês!", color='magenta'))
+    
+    return False
+
+def quinto_verificar_retorno_do_banco(date:datetime):
+    print(P(f"Executando verificação de retorno do banco em {date.strftime('%d/%m/%Y')}", color='yellow'))
+    
+    if etapa.executed_month('verificar_lancamentos'):
+        if not etapa.executed_month('verificar_retorno_do_banco'):
+            path = SAP().relatorio_partidas_individuais_cliente(utils.primeiro_dia_proximo_mes(date))
+            df = pd.read_excel(path)
+            os.unlink(path)
+            df = df.dropna(subset=['Conta'])
+            filtro = df[
+                df['Chave referência 3'].isna()
+            ]
+            if not filtro.empty:
+                empty_files_path = os.path.join(f"C:\\Users\\{os.getlogin()}\\Downloads", datetime.now().strftime("%Y%m%d%H%M%S_empty_files.xlsx"))
+                filtro.to_excel(empty_files_path, index=False)
+            
+            etapa.save('verificar_retorno_do_banco')
+            print(P("    Verificação de retorno do banco executada com sucesso!", color='green'))
+            return True
+               
+        else:
+            print(P("    Verificação de retorno do banco já foi executada este mês!", color='cyan'))
+    else:  
+        print(P("    Verificação de lançamentos não foi executada este mês!", color='magenta'))
 
 if __name__ == "__main__":
     pass

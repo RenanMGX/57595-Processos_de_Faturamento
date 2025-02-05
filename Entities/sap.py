@@ -16,17 +16,23 @@ class SAP(SAPManipulation):
     
     @SAPManipulation.start_SAP
     def relatorio_partidas_individuais_cliente(self, date:datetime):
-        #import pdb; pdb.set_trace()
-        
         self.session.findById("wnd[0]/tbar[0]/okcd").text = "/n fbl5n"
         self.session.findById("wnd[0]").sendVKey(0)
         self.session.findById("wnd[0]/usr/ctxtDD_KUNNR-LOW").text = "*"
         self.session.findById("wnd[0]/tbar[1]/btn[16]").press()
         self.session.findById("wnd[0]/usr/chkX_SHBV").selected = "true"
-        self.session.findById("wnd[0]/usr/ssub%_SUBSCREEN_%_SUB%_CONTAINER:SAPLSSEL:2001/ssubSUBSCREEN_CONTAINER2:SAPLSSEL:2000/ssubSUBSCREEN_CONTAINER:SAPLSSEL:1106/ctxt%%DYN012-LOW").text = "1.2.2025"
+        self.session.findById("wnd[0]/usr/ssub%_SUBSCREEN_%_SUB%_CONTAINER:SAPLSSEL:2001/ssubSUBSCREEN_CONTAINER2:SAPLSSEL:2000/ssubSUBSCREEN_CONTAINER:SAPLSSEL:1106/ctxt%%DYN012-LOW").text = date.strftime("%d.%m.%Y")
         self.session.findById("wnd[0]/usr/ctxtPA_STIDA").text = ""
         self.session.findById("wnd[0]/usr/ctxtPA_VARI").text = "/A_RECEBER2"
         self.session.findById("wnd[0]/tbar[1]/btn[8]").press()
+        
+        #import pdb; pdb.set_trace()
+        try:
+            if self.session.findById("wnd[0]/sbar/pane[0]").text == 'Nenhuma partida selecionada (ver texto descritivo)':
+                self.fechar_sap()
+                raise Exception("Nenhuma partida selecionada!")
+        except:
+            pass
         
         path:str = os.path.join(f"C:\\Users\\{os.getlogin()}\\Downloads", datetime.now().strftime("%Y%m%d%H%M%S_relatorio_partidas_indivudais_cliente.xlsx"))
         
@@ -72,9 +78,22 @@ class SAP(SAPManipulation):
             result = self.session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").getCellValue(0, "MSG")
             if result == "Nenhum documento encontrado":
                 return True
+            
+            if cont >= 15:
+                c = 0
+                infor_errors = []
+                while True:
+                    try:
+                        infor_errors.append(self.session.findById(f"wnd[0]/usr/cntlGRID1/shellcont/shell").getCellValue(c, "MSG"))
+                        c += 1
+                    except:
+                        break
+                raise Exception(f"Erros encontrados! -> {infor_errors}")
+            else:
+                cont += 1
+                sleep(1)
+                
             self.session.findById("wnd[0]/tbar[0]/btn[3]").press()
-            if cont >= 15: 
-                return False
     
     @SAPManipulation.start_SAP
     def teste(self):
