@@ -5,6 +5,7 @@ from dependencies.functions import Functions, P
 from datetime import datetime
 from time import sleep
 import os
+import pandas as pd
 
 class SAP(SAPManipulation):
     def __init__(self) -> None:
@@ -15,7 +16,7 @@ class SAP(SAPManipulation):
     
     @SAPManipulation.start_SAP
     def relatorio_partidas_individuais_cliente(self, date:datetime):
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         
         self.session.findById("wnd[0]/tbar[0]/okcd").text = "/n fbl5n"
         self.session.findById("wnd[0]").sendVKey(0)
@@ -43,7 +44,41 @@ class SAP(SAPManipulation):
         self.fechar_sap()
         
         return path
+    
+    
+    @SAPManipulation.start_SAP
+    def gerar_arquivos_de_remessa(self, data:dict) -> bool:
+        try:
+            data['empresa']
+            data['banco']
+            data['docs']
+        except KeyError as err:
+            raise KeyError(f"Chave não encontrada! -> {err}")
         
+        self.session.findById("wnd[0]/tbar[0]/okcd").text = "/n zfi010"
+        self.session.findById("wnd[0]").sendVKey(0)
+        
+        self.session.findById("wnd[0]/usr/ctxtS_BUKRS-LOW").text = data.get('empresa')
+        self.session.findById("wnd[0]/usr/ctxtS_HBKID-LOW").text = data.get('banco')
+        
+        self.session.findById("wnd[0]/usr/btn%_S_BELNR_%_APP_%-VALU_PUSH").press()
+        pd.DataFrame(data.get('docs')).to_clipboard(index=False, header=False)
+        self.session.findById("wnd[1]/tbar[0]/btn[24]").press()
+        self.session.findById("wnd[1]/tbar[0]/btn[8]").press()
+        
+        cont = 0
+        while True:
+            self.session.findById("wnd[0]/tbar[1]/btn[8]").press()
+            result = self.session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").getCellValue(0, "MSG")
+            if result == "Nenhum documento encontrado":
+                return True
+            self.session.findById("wnd[0]/tbar[0]/btn[3]").press()
+            if cont >= 15: 
+                return False
+    
+    @SAPManipulation.start_SAP
+    def teste(self):
+        import pdb; pdb.set_trace()
         
 if __name__ == "__main__":
     pass
