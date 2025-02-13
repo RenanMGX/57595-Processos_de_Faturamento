@@ -6,6 +6,7 @@ from datetime import datetime
 from time import sleep
 import os
 import pandas as pd
+import utils
 
 class SAP(SAPManipulation):
     def __init__(self) -> None:
@@ -94,6 +95,43 @@ class SAP(SAPManipulation):
                 sleep(1)
                 
             self.session.findById("wnd[0]/tbar[0]/btn[3]").press()
+    
+    
+    @SAPManipulation.start_SAP
+    def gerar_boletos_no_sap(self, *, date: datetime, pasta:str, debug:bool=False) -> bool:
+        try:
+            self.session.findById("wnd[0]/tbar[0]/okcd").text = "/n zfi018"
+            self.session.findById("wnd[0]").sendVKey(0)
+            
+            self.session.findById("wnd[0]/usr/ctxtS_BUKRS-LOW").text = "*"
+            
+            self.session.findById("wnd[0]/usr/txtS_GJAHR-LOW").text = str(date.year)
+            self.session.findById("wnd[0]/usr/ctxtP_VENINI").text = utils.primeiro_dia_mes(date).strftime("%d.%m.%Y")#"01.02.2025"
+            self.session.findById("wnd[0]/usr/ctxtP_VENFIM").text = utils.ultimo_dia_mes(date).strftime("%d.%m.%Y")#"28.02.2025"
+            
+            self.session.findById("wnd[0]/usr/ctxtP_PASTA").text = pasta # PASTA TEMPORARIA PARA DESENVOLVIMENTO
+            self.session.findById("wnd[0]/usr/txtP_ARQ").text = r"{GSBER}-{BLOCO}-{UNIDADE}-{MES_VENC}-{ANO_VENC}-{SERIE}-{PARCELA}-{BELNR}.pdf"
+
+            # apenas para desenvolvimento Remover depois
+            if debug:
+                self.session.findById("wnd[0]/usr/chkP_REIMP").selected = "false"
+            ############################################
+
+            self.session.findById("wnd[0]/tbar[1]/btn[8]").press()
+            
+            self.session.findById("wnd[0]/usr/shell").setCurrentCell( -1,"")
+            self.session.findById("wnd[0]/usr/shell").selectAll()
+            self.session.findById("wnd[0]/usr/shell").pressToolbarButton("ZPDF")
+            
+            self.fechar_sap()
+            
+            return True
+        except:
+            self.fechar_sap()
+            
+            return False
+        
+        
     
     @SAPManipulation.start_SAP
     def teste(self):
