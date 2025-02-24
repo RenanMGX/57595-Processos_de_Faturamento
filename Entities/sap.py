@@ -2,11 +2,13 @@ from dependencies.sap import SAPManipulation
 from dependencies.config import Config
 from dependencies.credenciais import Credential
 from dependencies.functions import Functions, P
+from dependencies.logs import Logs, traceback
 from datetime import datetime
 from time import sleep
 import os
 import pandas as pd
 import utils
+
 
 class SAP(SAPManipulation):
     def __init__(self) -> None:
@@ -61,6 +63,7 @@ class SAP(SAPManipulation):
             data['docs']
         except KeyError as err:
             raise KeyError(f"Chave não encontrada! -> {err}")
+        
         
         self.session.findById("wnd[0]/tbar[0]/okcd").text = "/n zfi010"
         self.session.findById("wnd[0]").sendVKey(0)
@@ -119,14 +122,18 @@ class SAP(SAPManipulation):
 
             self.session.findById("wnd[0]/tbar[1]/btn[8]").press()
             
+            
             self.session.findById("wnd[0]/usr/shell").setCurrentCell( -1,"")
             self.session.findById("wnd[0]/usr/shell").selectAll()
+            utils.mover_pdfs(pasta)
             self.session.findById("wnd[0]/usr/shell").pressToolbarButton("ZPDF")
             
             self.fechar_sap()
             
             return True
-        except:
+        except Exception as err:
+            print(P(str(err), color='red'))
+            Logs().register(status='Error', description=str(err), exception=traceback.format_exc())
             self.fechar_sap()
             
             return False

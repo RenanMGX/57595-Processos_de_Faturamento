@@ -15,33 +15,15 @@ import locale
 locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 
-class Imobme(Nav):
-    """
-    Classe que representa interações com o sistema Imobme.
-    """    
+class Imobme(Nav):    
     @property
     def base_url(self) -> str:
-        """
-        Retorna a parte inicial (base) da URL do sistema.
-
-        Returns:
-            str: URL base do sistema.
-        """
         if (url:=re.search(r'[A-z]+://[A-z0-9.]+/', self.__crd['url'])):
             return url.group()
         raise exceptions.UrlError("URL inválida!")
     
     @staticmethod
     def verify_login(func):
-        """
-        Decorator que verifica se o usuário está logado antes de executar a função.
-
-        Args:
-            func (Callable): Função a ser decorada.
-
-        Returns:
-            Callable: Função decorada.
-        """
         def wrap(*args, **kwargs):
             self:Imobme = args[0]
             
@@ -79,24 +61,22 @@ class Imobme(Nav):
             return result
         return wrap
     
-    def __init__(self):
+    def __init__(self, download_path:str=""):
         self.__crd:dict = Credential(Config()['credenciais']['imobme']).load()
         
-        super().__init__(download_path=Config()['path']['download'], save_user=True)
+        if not download_path:
+            download_path = Config()['path']['download']
+        
+        if not os.path.exists(download_path):
+            download_path = f"C:\\Users\\{os.getlogin()}\\Downloads"
+        
+        print(P(f"    Navegador DownloadPath {download_path=}   ", color='yellow'))
+        super().__init__(download_path=download_path, save_user=True)
         
         self.__load_page('Autenticacao/Login')
         
     
     def __load_page(self, endpoint:str):
-        """
-        Constrói a URL final e carrega a página solicitada.
-
-        Args:
-            endpoint (str): Caminho adicional a ser anexado à URL base.
-
-        Returns:
-            None
-        """
         if not endpoint.endswith('/'):
             endpoint += '/'
         if endpoint.startswith('/'):
@@ -107,15 +87,6 @@ class Imobme(Nav):
         self.get(url)
         
     def __esperar_carregamento(self, *, initial_wait:Union[int, float]=1):
-        """
-        Aguarda o carregamento de elementos na página.
-
-        Args:
-            initial_wait (float): Tempo inicial de espera.
-
-        Returns:
-            None
-        """
         sleep(initial_wait)
         while self._find_element(By.ID, 'feedback-loader').text == 'Carregando':
             print(P("Aguardando carregar página...                ", color='yellow'), end='\r')
@@ -124,34 +95,10 @@ class Imobme(Nav):
     
     @verify_login     
     def _find_element(self, by=By.ID, value: str | None = None, *, timeout: int = 10, force: bool = False, wait_before: int | float = 0, wait_after: int | float = 0) -> WebElement:
-        """
-        Envolve find_element com verificação de login.
-
-        Args:
-            by: Tipo de busca (ex: By.ID, By.XPATH).
-            value (str | None): Valor para busca do elemento.
-            timeout (int): Tempo de tentativas em segundos.
-            force (bool): Retorna elemento HTML se não for encontrado.
-            wait_before (float): Intervalo antes da busca.
-            wait_after (float): Intervalo após a busca.
-
-        Returns:
-            WebElement: Elemento encontrado ou o HTML.
-        """
         return super().find_element(by, value, timeout=timeout, force=force, wait_before=wait_before, wait_after=wait_after)
     
     @verify_login  
     def cobranca(self, date: datetime, *, tamanho_mini_lista=10) -> bool:
-        """
-        Executa rotinas de cobrança para uma data específica.
-
-        Args:
-            date (datetime): Data para a qual será realizada a cobrança.
-            tamanho_mini_lista (int): Tamanho de cada lista de empreendimentos.
-
-        Returns:
-            bool: True se a cobrança for realizada com sucesso.
-        """
         self.__load_page('CalculoMensal/Cobranca')
         print(P("Aguardando carregar página...                           ", color='yellow'))
         
@@ -241,16 +188,6 @@ class Imobme(Nav):
 
     @verify_login
     def verificar_indices(self, *, date: datetime, lista_indices:List[str]) -> bool:
-        """
-        Verifica se os índices informados estão aprovados na data especificada.
-
-        Args:
-            date (datetime): Data de referência.
-            lista_indices (List[str]): Lista de nomes dos índices a serem verificados.
-
-        Returns:
-            bool: True se todos os índices estiverem aprovados, caso contrário False.
-        """
         lista_indices = deepcopy(lista_indices)
         self.__load_page('Indice/Valores')
         
@@ -282,8 +219,102 @@ class Imobme(Nav):
         print(P(lista_indices, color='red'))
         return False
         
+    @verify_login
+    def rel_previsao_receita(self, *, date: datetime):
+        self.__load_page('Relatorio')
+        
+        for _ in range(5):
+            try:
+                self._find_element(By.XPATH, '//*[@id="Relatorios_chzn"]/a').click()
+                self._find_element(By.XPATH, '//*[@id="Relatorios_chzn_o_9"]').click()
+                break
+            except:
+                sleep(2)
+            if _ == 4:
+                raise exceptions.RelatorioError("Erro ao selecionar relatório!")
+                
+        self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div[1]/div[1]/h4').click()   
+        
+        self._find_element(By.ID, 'DataInicio').send_keys(utils.primeiro_dia_proximo_mes(date).strftime('%d%m%Y'))
+        self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div[1]/div[1]/h4').click()   
+        
+        self._find_element(By.ID, 'DataFim').send_keys(utils.ultimo_dia_proximo_mes(date).strftime('%d%m%Y'))
+        self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div[1]/div[1]/h4').click()   
+        
+        self._find_element(By.XPATH, '//*[@id="dvEmpreendimento"]/div[1]/div/div/button').click() # clica em Empreendimentos
+        self._find_element(By.XPATH, '//*[@id="dvEmpreendimento"]/div[1]/div/div/ul/li[2]/a/label/input').click() # clica em todos
+        self._find_element(By.XPATH, '//*[@id="dvEmpreendimento"]/div[1]/div/div/button').click() # clica em Empreendimentos
+        
+        self._find_element(By.ID, 'DataBase').send_keys(utils.primeiro_dia_proximo_mes(date).strftime('%d%m%Y'))
+        self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div[1]/div[1]/h4').click()  
+        
+    
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/button').click()
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/ul/li[4]/a/label').click()
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/ul/li[7]/a/label').click()
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/ul/li[12]/a/label').click()
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/button').click()
         
         
+        self._find_element(By.XPATH, '//*[@id="GerarRelatorio"]').click() # clica em gerar relatorio
+        sleep(7)
+        
+        relatories_id = [self._find_element(By.XPATH, '//*[@id="result-table"]/tbody/tr[1]/td[1]').text]
+        
+        
+        print(P("Iniciando verificação de download", color='cyan'))
+        cont_final: int = 0
+        while True:
+            if cont_final >= 1080:
+                print(P("saida emergencia acionada a espera da geração dos relatorios superou as 1,5 horas"))
+                raise TimeoutError("saida emergencia acionada a espera da geração dos relatorios superou as 1,5 horas")
+            else:
+                cont_final += 1
+            if not relatories_id:
+                break
+            
+            try:
+                table = self._find_element(By.ID, 'result-table')
+                tbody = table.find_element(By.TAG_NAME, 'tbody')
+                for tr in tbody.find_elements(By.TAG_NAME, 'tr'):
+                    for id in relatories_id:
+                        if id == tr.find_elements(By.TAG_NAME, 'td')[0].text:
+                            for tag_a in tr.find_elements(By.TAG_NAME, 'a'):
+                                if tag_a.get_attribute('title') == 'Download':
+                                    print(P(f"o {relatories_id=} foi baixado!", color='green'))
+                                    tag_a.send_keys(Keys.ENTER)
+                                    relatories_id.pop(relatories_id.index(id))
+            except:
+                sleep(5)
+                continue
+            
+            self._find_element(By.ID, 'btnProximaDefinicao').click()
+            sleep(5)
+            print(P("Atualizando Pagina"))
+        
+
+        return self.__ultimo_download()
+        
+    def __ultimo_download(self) -> str:
+        for _ in range(60):
+            sleep(1)
+            lista_arquivos:list = [os.path.join(self.download_path, file) for file in os.listdir(self.download_path)]
+            if lista_arquivos:
+                arquivo:str = max(lista_arquivos, key=os.path.getctime)
+                sleep(1)
+                if '.crdownload' in arquivo:
+                    #print(arquivo)
+                    del lista_arquivos
+                    del arquivo
+                    continue
+                else:
+                    return arquivo
+            else:
+                sleep(1)
+        raise Exception("não foi possivel identificar ultimo download")
+        
+        
+              
         
 if __name__ == '__main__':
     pass

@@ -17,9 +17,6 @@ class ElementNotFound(Exception):
         super().__init__(*args)
         
 class PageError(Exception):
-    """
-    Exceção lançada quando ocorre falha no carregamento de página.
-    """
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
@@ -27,10 +24,13 @@ class NavegadorChrome(Chrome):
     @property
     def default_timeout(self):
         """
-        Retorna o tempo padrão de carregamento de página definido pelo navegador.
+        Retorna o timeout padrão configurado para o carregamento de páginas.
+        
+        Esse valor é definido na inicialização a partir de self.timeouts.page_load,
+        permitindo que métodos como get() reajustem o tempo de espera.
 
         Returns:
-            int | float: Valor do timeout padrão.
+            int or float: Valor do timeout padrão.
         """
         return self.__default_timeout
     
@@ -46,16 +46,24 @@ class NavegadorChrome(Chrome):
                  save_user:bool = False,
         ):
         """
-        Construtor do NavegadorChrome.
+        Inicializa o navegador com configurações customizadas e gerencia o diretório de downloads e perfil de usuário.
 
+        Fluxo Detalhado:
+          1. Se 'download_path' for informado, verifica se o diretório existe – caso contrário, cria-o.
+          2. Configura as preferências do Chrome para utilizar o diretório de downloads.
+          3. Se 'save_user' for True, adiciona argumento para manter dados do usuário.
+          4. Chama o construtor da classe base Chrome, passando as opções configuradas.
+          5. Define o atributo __default_timeout com o valor de timeouts.page_load.
+          6. Armazena o flag 'speak' para a exibição condicional de mensagens.
+          
         Args:
-            options (Union[Options, None]): Opções para o Chrome.
-            service: Serviço responsável por iniciar o ChromeDriver.
-            keep_alive (bool): Mantém o driver vivo após execução.
-            speak (bool): Exibe mensagens de status no console.
-            download_path (str): Diretório onde arquivos serão baixados.
-            save_user (bool): Utiliza diretório de usuário salvo no Chrome.
-
+            options (Union[Options, None]): Opções avançadas para o Chrome.
+            service: Serviço que controla o ChromeDriver.
+            keep_alive (bool): Determina se o driver permanece ativo após a execução.
+            speak (bool): Ativa mensagens no console em tempo de execução.
+            download_path (str): Diretório de destino para arquivos baixados.
+            save_user (bool): Ativa o uso do perfil do usuário para persistência.
+            
         Returns:
             None
         """
@@ -64,6 +72,7 @@ class NavegadorChrome(Chrome):
             if not os.path.exists(download_path):
                 os.makedirs(download_path)
             prefs:dict = {"download.default_directory": download_path}
+            self.download_path = download_path
             if options:
                 options.add_experimental_option("prefs", prefs)
             else:
@@ -95,19 +104,30 @@ class NavegadorChrome(Chrome):
         wait_after:int|float=0
     ) -> WebElement:
         """
-        Localiza um único elemento na página, com tentativas repetidas.
+        Localiza um único elemento na página, realizando diversas tentativas.
 
+        Fluxo Detalhado:
+          1. Se 'wait_before' for especificado, aguarda o tempo definido.
+          2. Tenta, em um loop (com passos de 0.25 s e número total definido por timeout*4), localizar o elemento.
+             - Se encontrado: opcionalmente exibe mensagem (quando speak=True) e espera 'wait_after'.
+             - Retorna o elemento imediatamente.
+          3. Se nenhuma tentativa for bem-sucedida:
+             - Se force=True, retorna o elemento que representa a tag 'html' como fallback.
+             - Caso contrário, imprime mensagem de erro (se speak=True) e lança ElementNotFound.
+        
         Args:
-            by: Tipo de busca (ex: By.ID, By.XPATH).
-            value (str | None): Valor para busca do elemento.
-            timeout (int): Tempo total de tentativas (em segundos).
-            force (bool): Força o retorno do elemento HTML caso não seja encontrado.
-            wait_before (float): Intervalo antes de iniciar a busca.
-            wait_after (float): Intervalo após encontrar o elemento.
-
+            by: Estratégia para encontrar o elemento (ex.: By.ID, By.XPATH).
+            value (str | None): Valor que identifica o elemento.
+            timeout (int): Tempo total em segundos para tentar localizar o elemento.
+            force (bool): Se True, utiliza fallback no caso de não encontrar.
+            wait_before (int|float): Tempo de espera antes do início das tentativas.
+            wait_after (int|float): Tempo de espera após encontrar o elemento.
+        
         Returns:
-            WebElement: Elemento localizado ou, se 'force' for True e não encontrado,
-                        retorna o elemento HTML principal.
+            WebElement: Elemento encontrado ou fallback (tag 'html') se force for True.
+        
+        Raises:
+            ElementNotFound: Caso o elemento não seja localizado e force seja False.
         """
         # Espera antes de iniciar (caso necessário)
         if wait_before > 0:
@@ -142,18 +162,29 @@ class NavegadorChrome(Chrome):
         wait_after:int|float=0
     ) -> List[WebElement]:
         """
-        Localiza vários elementos na página, com tentativas repetidas.
+        Localiza vários elementos na página com tentativas repetidas.
 
+        Fluxo:
+          1. Aguarda um tempo inicial se 'wait_before' for informado.
+          2. Em loop (até timeout*4 iterações):
+              - Tenta buscar elementos via método da classe base.
+              - Se encontrados, exibe mensagem (quando speak=True), aguarda 'wait_after' e retorna a lista.
+          3. Se não encontrar e force for True, retorna uma lista vazia.
+          4. Caso contrário, lança a exceção ElementNotFound.
+        
         Args:
-            by: Tipo de busca (ex: By.ID, By.XPATH).
-            value (str | None): Valor para busca.
-            timeout (int): Tempo total de tentativas (em segundos).
-            force (bool): Retorna lista vazia caso não encontre elementos.
-            wait_before (float): Intervalo antes de iniciar a busca.
-            wait_after (float): Intervalo após encontrar os elementos.
-
+            by: Método de busca (por exemplo, By.ID ou By.XPATH).
+            value (str | None): Texto ou valor a ser procurado.
+            timeout (int): Tempo total de tentativa (em segundos).
+            force (bool): Se True, retorna lista vazia caso nenhum elemento seja localizado.
+            wait_before (float): Espera inicial antes de iniciar a busca.
+            wait_after (float): Espera adicional após encontrar os elementos.
+        
         Returns:
-            List[WebElement]: Lista de elementos localizados ou vazia, caso 'force' seja True.
+            List[WebElement]: Lista com os elementos encontrados.
+        
+        Raises:
+            ElementNotFound: Se nenhum elemento for achado e force for False.
         """
         # Espera antes de iniciar (caso necessário)
         if wait_before > 0:
@@ -179,13 +210,24 @@ class NavegadorChrome(Chrome):
     
     def get(self, url: str) -> None:
         """
-        Carrega a URL especificada com tentativas de reenvio.
+        Carrega a URL especificada em múltiplas tentativas, ajustando o timeout para garantir o sucesso.
 
+        Fluxo:
+          1. Reduz o tempo de timeout para 3 segundos para tentar um carregamento rápido.
+          2. Em um loop de 10 tentativas:
+             - Tenta carregar a página pelo método da classe base.
+             - Aguarda 1 segundo para estabilizar o carregamento.
+             - Caso consiga carregar, redefine o timeout para o valor padrão e retorna.
+          3. Se todas as tentativas falharem, lança um PageError informando que a página não foi encontrada.
+        
         Args:
-            url (str): Endereço da página que será carregada.
-
+            url (str): Endereço da página a ser carregada.
+        
         Returns:
             None
+        
+        Raises:
+            PageError: Se a página não puder ser carregada após 10 tentativas.
         """
         self.set_page_load_timeout(3)
         for _ in range(10):

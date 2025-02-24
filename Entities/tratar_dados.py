@@ -1,6 +1,9 @@
 import pandas as pd
 import os
 from typing import Dict
+import xlwings as xw
+from dependencies.functions import Functions
+from time import sleep
 
 class TratarDados:
     @staticmethod
@@ -24,12 +27,27 @@ class TratarDados:
         for empresa in empresas:
             for banco in bancos:
                 temp = {}
+                temp['docs'] = df[(df['Empresa'] == empresa) & (df['Banco da empresa'] == banco)]['Nº documento'].dropna().astype(int).tolist()
+                if not temp['docs']:
+                    continue
                 temp['empresa'] = empresa
                 temp['banco'] = banco
-                temp['docs'] = df[(df['Empresa'] == empresa) & (df['Banco da empresa'] == banco)]['Nº documento'].dropna().astype(int).tolist()
                 docs.append(temp)
         
         return docs
+    
+    @staticmethod
+    def load_previReceita(path:str) -> pd.DataFrame:
+        app = xw.App(visible=False)
+        wb = app.books.open(path)
+        del wb.sheets[0]
+        wb.save()
+        wb.close()
+        app.kill()
+        
+        Functions.fechar_excel(path)
+
+        return pd.read_excel(path)
             
     
 if __name__ == "__main__":
