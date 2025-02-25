@@ -7,8 +7,9 @@ from Entities.pdf_manipulator import PDFManipulator
 from Entities.dependencies.logs import Logs, traceback
 from typing import List, Dict
 from time import sleep
-import Entities.utils as utils
+from datetime import datetime
 
+import Entities.utils as utils
 import os
 import json
 import sys
@@ -34,6 +35,10 @@ lista_indices = [
 
 
 class Processos:
+    @property
+    def relatorios_path(self) -> str:
+        return os.path.join(os.getcwd(), 'relatorios')
+    
     def __init__(self, date: datetime, *, pasta: str = r"W:\BOLETOS_SEGUNDA_VIA_HML") -> None:
         """
         Inicializa a classe Processos definindo a data de referência e a pasta para armazenar boletos.
@@ -53,8 +58,18 @@ class Processos:
         self.date = date
         self.etapa = Etapa()
         self.pasta: str = pasta
+        
+        if not os.path.exists(self.relatorios_path):
+            os.makedirs(self.relatorios_path)
+            
+    def _limpar_pasta_relatorios(self, *, etapa:str="limpar_pasta_relatorios") -> None:
+        if (not self.etapa.executed_month(etapa) or etapa == ""):
+            if os.path.exists(self.relatorios_path):
+                for file in os.listdir(self.relatorios_path):
+                    os.unlink(os.path.join(self.relatorios_path, file))
+            print(P("Pasta de relatórios limpa!", color='cyan'))
 
-    def primeiro_imobme_cobranca_global(self, date: datetime | None = None, *, finalizar: bool) -> bool:
+    def imobme_cobranca_global(self, date: datetime | None = None, *, finalizar: bool, etapa:str) -> bool:
         """
         Executa a cobrança global no sistema Imobme para o mês corrente.
 
@@ -80,11 +95,11 @@ class Processos:
             date = self.date
         print(P(f"Executando Imobme cobrança global em {date.strftime('%d/%m/%Y')}", color='yellow'))
         
-        if not self.etapa.executed_month('imobme_cobranca_global'):
+        if (not self.etapa.executed_month(etapa) or etapa == ""):
             bot = Imobme()
             if bot.verificar_indices(date=utils.primeiro_dia_ultimo_mes(date), lista_indices=lista_indices):
                 if bot.cobranca(utils.primeiro_dia_proximo_mes(date), tamanho_mini_lista=12):
-                    self.etapa.save('imobme_cobranca_global')
+                    self.etapa.save(etapa)
                     print(P("    Imobme Cobrança global executada com sucesso!", color='green'))
                     bot.close()
                     del bot
@@ -100,40 +115,8 @@ class Processos:
             print(P("    Imobme Cobrança global já foi executada este mês!", color='cyan'))
         return False
     
-    def pre_segundo_verificar_documentos_imobme_para_sap(self, date: datetime | None = None) -> bool:
-        if date is None:
-            date = self.date
-            
-        if self.etapa.executed_month('imobme_cobranca_global'):
-            if not self.etapa.executed_month('verificar_documentos_imobme_para_sap'):
-                download_path = os.path.join(os.getcwd(), 'downloads')
-                if not os.path.exists(download_path):
-                    os.makedirs(download_path)
-                else:
-                    for file in os.listdir(download_path):
-                        os.unlink(os.path.join(download_path, file))
-                        
-                bot = Imobme(download_path=download_path)
-                
-                file_previsaoReceita = ""
-                try:
-                    file_previsaoReceita = bot.rel_previsao_receita(date=date)
-                except:
-                    print(P("    Erro ao executar relatório de previsão de receita!", color='red'))
-                    return False
-                
-                df = TratarDados.load_previReceita(file_previsaoReceita)
-                
-                import pdb; pdb.set_trace()
-                
-                bot.close()
-                del bot
-        else:
-            sys.exit()
-            
-        return False
            
-    def segundo_rel_partidas_individuais(self, date: datetime | None = None):
+    def rel_partidas_individuais(self, date: datetime | None = None, *, etapa:str, ultima_etapa:str=""):
         """
         Gera o relatório de partidas individuais via SAP para um determinado mês.
 
@@ -159,8 +142,8 @@ class Processos:
             date = self.date
         print(P(f"Executando relatório partidas individuais em {date.strftime('%d/%m/%Y')}", color='yellow'))
         
-        if self.etapa.executed_month('verificar_documentos_imobme_para_sap'):
-            if not self.etapa.executed_month('rel_partidas_individuais'):
+        if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if (not self.etapa.executed_month(etapa) or etapa == ""):
                 sap = SAP()
                 try:
                     file_path = sap.relatorio_partidas_individuais_cliente(utils.primeiro_dia_proximo_mes(date))
@@ -168,6 +151,8 @@ class Processos:
                     print(P(f"    Erro ao executar o processo! -> {err}", color='red'))
                     Logs().register(status='Error', description=str(err), exception=traceback.format_exc())
                     return False
+                finally:
+                    sap.fechar_sap()
                 
                 if file_path:
                     docs:list = TratarDados.sep_dados_por_empresas(file_path)
@@ -182,7 +167,7 @@ class Processos:
                     with open(docs_path, 'w') as file:
                         json.dump(docs, file)
                     
-                    self.etapa.save('rel_partidas_individuais')
+                    self.etapa.save(etapa)
                     print(P("    Relatório partidas individuais executado com sucesso!", color='green'))
                     return True
                 else:
@@ -194,7 +179,7 @@ class Processos:
             sys.exit()
             
             
-    def terceiro_gerar_arquivos_de_remessa(self):
+    def gerar_arquivos_de_remessa(self , *, finalizar: bool=False, etapa:str, ultima_etapa:str=""):
         """
         Gera arquivos de remessa a partir dos dados consolidados do relatório de partidas individuais.
 
@@ -217,8 +202,8 @@ class Processos:
         """
         print(P("Executando geração de arquivos de remessa", color='yellow'))
         
-        if self.etapa.executed_month('rel_partidas_individuais'):
-            if not self.etapa.executed_month('gerar_arquivos_de_remessa'):
+        if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if (not self.etapa.executed_month(etapa) or etapa == ""):
                 sap = SAP()
                 with open('docs.json', 'r') as file:
                     data:List[Dict[str,object]] = json.load(file)
@@ -227,15 +212,20 @@ class Processos:
                     if not dado['docs']:
                         print(P(f"    {dado['empresa']} não possui documentos!", color='cyan'))
                         continue
+                    
                     try:
                         sap.gerar_arquivos_de_remessa(data=dado)
                     except Exception as err:
                         print(P(f"    Erro ao executar o processo! -> {err}", color='red'))
                         Logs().register(status='Report', description=str(err), exception=traceback.format_exc())
                         continue
+                    
                 sap.fechar_sap()
-                self.etapa.save('gerar_arquivos_de_remessa')
+                self.etapa.save(etapa)
                 print(P("    Geração de arquivos de remessa executada com sucesso!", color='green'))
+                if finalizar:
+                    print(P("Finalizando aplicação...", color='magenta'))
+                    sys.exit()
                 return True
             else:
                 print(P("    Geração de arquivos de remessa já foi executada este mês!", color='cyan'))
@@ -243,7 +233,14 @@ class Processos:
             print(P("    Relatório partidas individuais não foi executado este mês!", color='magenta'))
             sys.exit()
             
-    def quarto_verificar_lancamentos(self, date: datetime | None = None, *, finalizar: bool):
+    def verificar_lancamentos(self,
+                              date: datetime | None = None, 
+                              *,
+                              finalizar: bool=False,
+                              etapa:str, ultima_etapa:str="",
+                              ignorar_empresas:list=[],
+                              timeout:int = 5
+                              ):
         """
         Realiza a verificação dos lançamentos no SAP para confirmar a efetividade das operações.
 
@@ -269,26 +266,36 @@ class Processos:
             date = self.date
         print(P(f"Executando verificação de lançamentos em {date.strftime('%d/%m/%Y')}", color='yellow'))
         
-        if self.etapa.executed_month('gerar_arquivos_de_remessa'):
-            if not self.etapa.executed_month('verificar_lancamentos'):
+        if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if (not self.etapa.executed_month(etapa) or etapa == ""):
 
-                for _ in range(5):
+                lista_campos_vazios = pd.DataFrame({"Empresa": []})
+                for _ in range(timeout):
                     path = SAP().relatorio_partidas_individuais_cliente(utils.primeiro_dia_proximo_mes(date))
                     df = pd.read_excel(path)
+
                     os.unlink(path)
                     df = df.dropna(subset=['Conta'])
-                    if df[df['Solicitação de L/C'].isna()].empty:
-                        self.etapa.save('verificar_lancamentos')
+                    
+                    for empresa in ignorar_empresas:
+                        df = df[df['Empresa'] != empresa]                    
+                    
+                    if (df_campos:=df[df['Solicitação de L/C'].isna()]).empty:
+                        self.etapa.save(etapa)
                         print(P("    Verificação de lançamentos executada com sucesso!", color='green'))
                         if finalizar:
                             print(P("Finalizando aplicação...", color='magenta'))
                             sys.exit()
                         return True
+                    else:
+                        lista_campos_vazios = df_campos
                     
                     sleep(15)
                 
-                Logs().register(status='Error', description="Erro ao executar verificação de lançamentos", exception=traceback.format_exc())
-                print(P("    Erro ao executar verificação de lançamentos!", color='red'))
+                
+                Logs().register(status='Error', description=f"Erro ao executar verificação de lançamentos as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido {lista_campos_vazios["Empresa"].unique().tolist()}", exception=traceback.format_exc())
+                print(P(f"    Erro ao executar verificação de lançamentos! as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido {lista_campos_vazios["Empresa"].unique().tolist()}", color='red'))
+                lista_campos_vazios.to_excel(os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_verificarLancamentos.xlsx")), index=False)
             else:
                 print(P("    Verificação de lançamentos já foi executada este mês!", color='cyan'))
         else:
@@ -297,7 +304,7 @@ class Processos:
         
         return False
 
-    def quinto_verificar_retorno_do_banco(self, date: datetime | None = None):
+    def verificar_retorno_do_banco(self, date: datetime | None = None, *, finalizar: bool=False, etapa:str, ultima_etapa:str=""):
         """
         Confirma se o retorno do banco foi registrado corretamente.
 
@@ -323,8 +330,8 @@ class Processos:
             date = self.date
         print(P(f"Executando verificação de retorno do banco em {date.strftime('%d/%m/%Y')}", color='yellow'))
         
-        if self.etapa.executed_month('verificar_lancamentos'):
-            if not self.etapa.executed_month('verificar_retorno_do_banco'):
+        if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if (not self.etapa.executed_month(etapa) or etapa == ""):
                 path = SAP().relatorio_partidas_individuais_cliente(utils.primeiro_dia_proximo_mes(date))
                 df = pd.read_excel(path)
                 os.unlink(path)
@@ -336,8 +343,11 @@ class Processos:
                     empty_files_path = os.path.join(f"C:\\Users\\{os.getlogin()}\\Downloads", datetime.now().strftime("%Y%m%d%H%M%S_empty_files.xlsx"))
                     filtro.to_excel(empty_files_path, index=False)
                 
-                self.etapa.save('verificar_retorno_do_banco')
+                self.etapa.save(etapa)
                 print(P("    Verificação de retorno do banco executada com sucesso!", color='green'))
+                if finalizar:
+                    print(P("Finalizando aplicação...", color='magenta'))
+                    sys.exit()
                 return True
                 
             else:
@@ -346,7 +356,7 @@ class Processos:
             print(P("    Verificação de lançamentos não foi executada este mês!", color='magenta'))
             sys.exit()
             
-    def sexto_gerar_boletos(self, *, date: datetime | None = None):
+    def gerar_boletos(self, *, date: datetime | None = None, finalizar: bool=False, etapa:str, ultima_etapa:str=""):
         """
         Executa o processo de geração de boletos via SAP para a data informada.
 
@@ -369,11 +379,15 @@ class Processos:
             date = self.date
         print(P(f"Executando geração de boletos em {date.strftime('%d/%m/%Y')}", color='yellow'))
         
-        if self.etapa.executed_month('verificar_retorno_do_banco'):
-            if not self.etapa.executed_month('gerar_boletos'):
+        if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if (not self.etapa.executed_month(etapa) or etapa == ""):
                 if SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, debug=True): # O DEBUG ESTA ATIVADO REMOVER PARA PRODUÇÂO
-                    self.etapa.save('gerar_boletos')
+                    self.etapa.save(etapa)
                     print(P("    Geração de boletos executada com sucesso!", color='green'))
+                    if finalizar:
+                        print(P("Finalizando aplicação...", color='magenta'))
+                        sys.exit()
+                    return True
                 else:
                     print(P("    Erro ao executar geração de boletos!", color='red'))
             else:

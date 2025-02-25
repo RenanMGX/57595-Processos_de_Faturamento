@@ -39,8 +39,7 @@ class SAP(SAPManipulation):
         
         path:str = os.path.join(f"C:\\Users\\{os.getlogin()}\\Downloads", datetime.now().strftime("%Y%m%d%H%M%S_relatorio_partidas_indivudais_cliente.xlsx"))
         
-        self.session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").contextMenu()
-        self.session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").selectContextMenuItem("&XXL")
+        self.session.findById("wnd[0]/mbar/menu[0]/menu[3]/menu[1]").select()
         self.session.findById("wnd[1]/tbar[0]/btn[0]").press()
         self.session.findById("wnd[1]/usr/ctxtDY_PATH").text = os.path.dirname(path)
         self.session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = os.path.basename(path)
@@ -96,10 +95,10 @@ class SAP(SAPManipulation):
             else:
                 cont += 1
                 sleep(1)
-                
+            
             self.session.findById("wnd[0]/tbar[0]/btn[3]").press()
     
-    
+
     @SAPManipulation.start_SAP
     def gerar_boletos_no_sap(self, *, date: datetime, pasta:str, debug:bool=False) -> bool:
         try:

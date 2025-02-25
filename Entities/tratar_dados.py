@@ -2,8 +2,9 @@ import pandas as pd
 import os
 from typing import Dict
 import xlwings as xw
-from dependencies.functions import Functions
+from dependencies.functions import Functions, P
 from time import sleep
+
 
 class TratarDados:
     @staticmethod
@@ -25,6 +26,9 @@ class TratarDados:
 
         docs = []
         for empresa in empresas:
+            if empresa == "P027":
+                print(P("P027 foi removido", color='magenta'))
+                continue
             for banco in bancos:
                 temp = {}
                 temp['docs'] = df[(df['Empresa'] == empresa) & (df['Banco da empresa'] == banco)]['Nº documento'].dropna().astype(int).tolist()

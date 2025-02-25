@@ -13,21 +13,26 @@ if __name__ == "__main__":
         
         print(P('  ---> Iniciando Automação <---  \n', color='green'))
         
-        processos.primeiro_imobme_cobranca_global(date=date, finalizar=True)
+        # Etapa 1
+        processos.imobme_cobranca_global(date=date, finalizar=True, etapa='1.imobme_cobranca_global') # ETAPA 1 OK
         
-        processos.pre_segundo_verificar_documentos_imobme_para_sap(date=date)
+        # Etapa 2       
+        processos.rel_partidas_individuais(date=date, etapa='2.rel_partidas_individuais', ultima_etapa='1.imobme_cobranca_global') # ETAPA 2 OK
         
-        processos.segundo_rel_partidas_individuais(date=date) # para ser executado 1 dia depois
+        # Etapa 3
+        processos.gerar_arquivos_de_remessa(etapa='3.gerar_arquivos_de_remessa', ultima_etapa='2.rel_partidas_individuais')# ETAPA 3 OK
         
-        processos.terceiro_gerar_arquivos_de_remessa()
+        # Etapa 4
+        processos.verificar_lancamentos(date=date, finalizar=True, etapa="4.verificar_lancamentos", ultima_etapa='3.gerar_arquivos_de_remessa', timeout=2)
         
-        processos.quarto_verificar_lancamentos(date=date, finalizar=True) # para ser executado 1 dia depois
-            
-        processos.quinto_verificar_retorno_do_banco(date=date) # para ser executado 2 dia depois
+        # # Etapa 5   
+        # processos.verificar_retorno_do_banco(date=date, etapa='5.verificar_retorno_do_banco', ultima_etapa='4.verificar_lancamentos')
         
-        processos.sexto_gerar_boletos(date=date) # para ser executado 2 dia depois
+        # # Etapa 6
+        # processos.gerar_boletos(date=date, etapa='6.gerar_boletos', ultima_etapa='5.verificar_retorno_do_banco') # ETAPA OK
         
-        #processos.setimo_criptografar_boletos() # Esperar liberação do Financeiro
+        # Etapa 7
+        ###processos.setimo_criptografar_boletos() # Esperar liberação do Financeiro
     except Exception as err:
         Logs().register(status='Error', description=str(err), exception=traceback.format_exc())
         print(traceback.format_exc())
