@@ -39,7 +39,7 @@ class Processos:
     def relatorios_path(self) -> str:
         return os.path.join(os.getcwd(), 'relatorios')
     
-    def __init__(self, date: datetime, *, pasta: str = r"W:\BOLETOS_SEGUNDA_VIA_HML") -> None:
+    def __init__(self, date: datetime, *, pasta: str = r"W:\BOLETOS_SEGUNDA_VIA") -> None:
         """
         Inicializa a classe Processos definindo a data de referência e a pasta para armazenar boletos.
 
@@ -112,11 +112,11 @@ class Processos:
             else:
                 print(P("    Erro ao verificar indices!", color='red'))
         else:
-            print(P("    Imobme Cobrança global já foi executada este mês!", color='cyan'))
+            print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         return False
     
            
-    def rel_partidas_individuais(self, date: datetime | None = None, *, etapa:str, ultima_etapa:str=""):
+    def rel_partidas_individuais(self, date: datetime | None = None, *, etapa:str, ultima_etapa:str="", remover_empresas:list=[]):
         """
         Gera o relatório de partidas individuais via SAP para um determinado mês.
 
@@ -155,7 +155,7 @@ class Processos:
                     sap.fechar_sap()
                 
                 if file_path:
-                    docs:list = TratarDados.sep_dados_por_empresas(file_path)
+                    docs:list = TratarDados.sep_dados_por_empresas(file_path, remover_empresas=remover_empresas)
                     sleep(3)
                     Functions.fechar_excel(file_path)
                     os.unlink(file_path)
@@ -173,9 +173,9 @@ class Processos:
                 else:
                     print(P("    Erro ao executar relatório partidas individuais!", color='red'))
             else:
-                print(P("    Relatório partidas individuais já foi executado este mês!", color='cyan'))
+                print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         else:
-            print(P("    Verificar documentos Imobme para SAP não foi executado este mês!", color='magenta'))
+            print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
             
             
@@ -228,9 +228,9 @@ class Processos:
                     sys.exit()
                 return True
             else:
-                print(P("    Geração de arquivos de remessa já foi executada este mês!", color='cyan'))
+                print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         else:
-            print(P("    Relatório partidas individuais não foi executado este mês!", color='magenta'))
+            print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
             
     def verificar_lancamentos(self,
@@ -297,9 +297,9 @@ class Processos:
                 print(P(f"    Erro ao executar verificação de lançamentos! as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido {lista_campos_vazios["Empresa"].unique().tolist()}", color='red'))
                 lista_campos_vazios.to_excel(os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_verificarLancamentos.xlsx")), index=False)
             else:
-                print(P("    Verificação de lançamentos já foi executada este mês!", color='cyan'))
+                print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         else:
-            print(P("    Geração de arquivos de remessa não foi executada este mês!", color='magenta'))
+            print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
         
         return False
@@ -336,12 +336,12 @@ class Processos:
                 df = pd.read_excel(path)
                 os.unlink(path)
                 df = df.dropna(subset=['Conta'])
+                #df.to_excel(os.path.join(f"C:\\Users\\{os.getlogin()}\\Downloads", datetime.now().strftime("%Y%m%d%H%M%S_temp.xlsx")), index=False)
                 filtro = df[
                     df['Chave referência 3'].isna()
                 ]
                 if not filtro.empty:
-                    empty_files_path = os.path.join(f"C:\\Users\\{os.getlogin()}\\Downloads", datetime.now().strftime("%Y%m%d%H%M%S_empty_files.xlsx"))
-                    filtro.to_excel(empty_files_path, index=False)
+                    filtro.to_excel(os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_verificarRetornoBanco.xlsx")), index=False)
                 
                 self.etapa.save(etapa)
                 print(P("    Verificação de retorno do banco executada com sucesso!", color='green'))
@@ -351,12 +351,18 @@ class Processos:
                 return True
                 
             else:
-                print(P("    Verificação de retorno do banco já foi executada este mês!", color='cyan'))
-        else:  
-            print(P("    Verificação de lançamentos não foi executada este mês!", color='magenta'))
+                print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
+        else:
+            print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
             
-    def gerar_boletos(self, *, date: datetime | None = None, finalizar: bool=False, etapa:str, ultima_etapa:str=""):
+    def gerar_boletos(self, *,
+                      date: datetime | None = None,
+                      finalizar: bool=False,
+                      etapa:str,
+                      ultima_etapa:str="",
+                      mover_pdf:bool=False
+                      ):
         """
         Executa o processo de geração de boletos via SAP para a data informada.
 
@@ -381,7 +387,7 @@ class Processos:
         
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
             if (not self.etapa.executed_month(etapa) or etapa == ""):
-                if SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, debug=True): # O DEBUG ESTA ATIVADO REMOVER PARA PRODUÇÂO
+                if SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, debug=True, mover_pdf=mover_pdf): # O DEBUG ESTA ATIVADO REMOVER PARA PRODUÇÂO
                     self.etapa.save(etapa)
                     print(P("    Geração de boletos executada com sucesso!", color='green'))
                     if finalizar:
@@ -391,12 +397,12 @@ class Processos:
                 else:
                     print(P("    Erro ao executar geração de boletos!", color='red'))
             else:
-                print(P("    Geração de boletos já foi executada este mês!", color='cyan'))
+                print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         else:
-            print(P("    Verificação de retorno do banco não foi executada este mês!", color='magenta'))
+            print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
             
-    def setimo_criptografar_boletos(self):
+    def criptografar_boletos(self):
         """
         Realiza a criptografia dos PDFs de boletos armazenados na pasta definida.
 
@@ -426,6 +432,60 @@ class Processos:
                 pass
                 
         print(P("    Criptografia de boletos executada com sucesso!", color='green'))
+        
+    def preparar_lista_envio_email(self, *,
+                      date: datetime | None = None,
+                      finalizar: bool=False,
+                      etapa:str,
+                      ultima_etapa:str="",
+                      extrair_relatorio:bool=True
+                      ):
+        
+        if date is None:
+            date = self.date
+        print(P(f"Executando geração de boletos em {date.strftime('%d/%m/%Y')}", color='yellow'))
+        
+        if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if (not self.etapa.executed_month(etapa) or etapa == ""):
+                download_path:str = os.path.join(os.getcwd(), 'downloads')
+                
+                if not os.path.exists(download_path):
+                    os.makedirs(download_path)
+                else:
+                    if extrair_relatorio:
+                        for file in os.listdir(download_path):
+                            os.unlink(os.path.join(download_path, file))
+                
+                if extrair_relatorio:
+                    bot = Imobme(download_path=download_path)                
+                    bot.extrair_previsaoReceita(initial_date=utils.primeiro_dia_proximo_mes(date), final_date=utils.ultimo_dia_proximo_mes(date))
+                    bot.close()
+                    del bot
+                
+                file_prevReceita_path = [os.path.join(download_path, file) for file in os.listdir(download_path)]
+                if file_prevReceita_path:
+                    file_prevReceita_path = file_prevReceita_path[0]
+                else:
+                    print(P("    Erro ao extrair previsão de receita!", color='red'))
+                    raise FileNotFoundError("Arquivo de previsão de receita não encontrado!")
+                
+                df = TratarDados.load_previReceita(file_prevReceita_path)
+                import pdb; pdb.set_trace()
+                
+                
+                
+                
+                
+            
+            else:
+                print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
+        else:
+            print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
+            sys.exit()
+
+        print("tes")
+        return False
+        
 
 if __name__ == "__main__":
     pass

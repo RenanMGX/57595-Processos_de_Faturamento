@@ -4,11 +4,14 @@ from typing import Dict
 import xlwings as xw
 from dependencies.functions import Functions, P
 from time import sleep
+from typing import List
 
 
 class TratarDados:
     @staticmethod
-    def sep_dados_por_empresas(path:str) -> list:
+    def sep_dados_por_empresas(path:str, *, remover_empresas:List[str]=[]) -> list:
+        remover_empresas = [empresa.upper() for empresa in remover_empresas]
+        
         if not os.path.exists(path):
             raise FileNotFoundError(f"O arquivo '{path}' não foi encontrado!")
         
@@ -26,8 +29,8 @@ class TratarDados:
 
         docs = []
         for empresa in empresas:
-            if empresa == "P027":
-                print(P("P027 foi removido", color='magenta'))
+            if empresa.upper() in remover_empresas:
+                print(P(f"{empresa} foi removido", color='magenta'))
                 continue
             for banco in bancos:
                 temp = {}
@@ -44,14 +47,22 @@ class TratarDados:
     def load_previReceita(path:str) -> pd.DataFrame:
         app = xw.App(visible=False)
         wb = app.books.open(path)
-        del wb.sheets[0]
-        wb.save()
+        
+        ws = wb.sheets[1]
+        
+        table = ws.range('A1').expand('table').value        
+        df = pd.DataFrame(table)
+        
+        df.columns = df.iloc[0]
+        df = df.iloc[1:]
+        
         wb.close()
         app.kill()
         
+        sleep(1)
         Functions.fechar_excel(path)
 
-        return pd.read_excel(path)
+        return df
             
     
 if __name__ == "__main__":

@@ -100,7 +100,7 @@ class SAP(SAPManipulation):
     
 
     @SAPManipulation.start_SAP
-    def gerar_boletos_no_sap(self, *, date: datetime, pasta:str, debug:bool=False) -> bool:
+    def gerar_boletos_no_sap(self, *, date: datetime, pasta:str, debug:bool=False, mover_pdf:bool=False) -> bool:
         try:
             self.session.findById("wnd[0]/tbar[0]/okcd").text = "/n zfi018"
             self.session.findById("wnd[0]").sendVKey(0)
@@ -108,11 +108,13 @@ class SAP(SAPManipulation):
             self.session.findById("wnd[0]/usr/ctxtS_BUKRS-LOW").text = "*"
             
             self.session.findById("wnd[0]/usr/txtS_GJAHR-LOW").text = str(date.year)
-            self.session.findById("wnd[0]/usr/ctxtP_VENINI").text = utils.primeiro_dia_mes(date).strftime("%d.%m.%Y")#"01.02.2025"
-            self.session.findById("wnd[0]/usr/ctxtP_VENFIM").text = utils.ultimo_dia_mes(date).strftime("%d.%m.%Y")#"28.02.2025"
+            self.session.findById("wnd[0]/usr/ctxtP_VENINI").text = utils.primeiro_dia_proximo_mes(date).strftime("%d.%m.%Y")#"01.02.2025"
+            self.session.findById("wnd[0]/usr/ctxtP_VENFIM").text = utils.ultimo_dia_proximo_mes(date).strftime("%d.%m.%Y")#"28.02.2025"
             
             self.session.findById("wnd[0]/usr/ctxtP_PASTA").text = pasta # PASTA TEMPORARIA PARA DESENVOLVIMENTO
             self.session.findById("wnd[0]/usr/txtP_ARQ").text = r"{GSBER}-{BLOCO}-{UNIDADE}-{MES_VENC}-{ANO_VENC}-{SERIE}-{PARCELA}-{BELNR}.pdf"
+
+
 
             # apenas para desenvolvimento Remover depois
             if debug:
@@ -124,7 +126,8 @@ class SAP(SAPManipulation):
             
             self.session.findById("wnd[0]/usr/shell").setCurrentCell( -1,"")
             self.session.findById("wnd[0]/usr/shell").selectAll()
-            utils.mover_pdfs(pasta)
+            if mover_pdf:
+                utils.mover_pdfs(pasta)
             self.session.findById("wnd[0]/usr/shell").pressToolbarButton("ZPDF")
             
             self.fechar_sap()

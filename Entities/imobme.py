@@ -3,6 +3,7 @@ from dependencies.navegador_chrome import NavegadorChrome as Nav
 from dependencies.navegador_chrome import By, Keys, P, Select, WebElement
 from dependencies.config import Config
 from dependencies.credenciais import Credential
+from dependencies.logs import Logs
 from time import sleep
 from datetime import datetime
 from typing import List, Dict, Union
@@ -294,6 +295,94 @@ class Imobme(Nav):
         
 
         return self.__ultimo_download()
+    
+    @verify_login
+    def extrair_previsaoReceita(self, *, initial_date: datetime, final_date:datetime):
+        self.__load_page("Relatorio")
+        
+        
+        self._find_element(By.XPATH, '//*[@id="Content"]').location_once_scrolled_into_view
+        for _ in range(5):
+            try:
+                self._find_element(By.ID, 'Relatorios_chzn').click() # clique em selecionar Relatorios
+                self._find_element(By.XPATH, '//*[@id="Relatorios_chzn_o_9"]').click() # clique em IMOBME - Previsão de Receita
+                break
+            except:
+                sleep(1)
+            if _ == 4:
+                raise exceptions.RelatorioError("Erro ao selecionar relatório!")
+                
+        self._find_element(By.XPATH, '//*[@id="DataInicio"]').send_keys(initial_date.strftime("%d%m%Y")) # escreve a data de inicio padrao 01/01/2015
+        self._find_element(By.XPATH, '//*[@id="Header"]/div[1]/img[1]').click() #<-------------------
+        self._find_element(By.XPATH, '//*[@id="DataFim"]').send_keys(final_date.strftime("%d%m%Y")) # escreve a data de fim padrao com a data atual mais 25 anos
+        self._find_element(By.XPATH, '//*[@id="Header"]/div[1]/img[1]').click() #<-------------------
+                
+        self._find_element(By.XPATH, '//*[@id="dvEmpreendimento"]/div[1]/div/div/button').click() # clica em Empreendimentos
+        self._find_element(By.XPATH, '//*[@id="dvEmpreendimento"]/div[1]/div/div/ul/li[2]/a/label/input').click() # clica em todos
+        self._find_element(By.XPATH, '//*[@id="dvEmpreendimento"]/div[1]/div/div/button').click() # clica em Empreendimentos
+        self._find_element(By.XPATH, '//*[@id="DataBase"]').send_keys(datetime.now().strftime("%d%m%Y")) # escreve a data de hoje
+        self._find_element(By.XPATH, '//*[@id="Header"]/div[1]/img[1]').click() #<-------------------
+        
+        #import pdb; pdb.set_trace()
+        
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/button').click()
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/ul/li[4]/a/label/input').click()
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/ul/li[7]/a/label/input').click()
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/ul/li[12]/a/label/input').click()
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/button').click()
+        
+        self._find_element(By.XPATH, '//*[@id="GerarRelatorio"]').click() # clica em gerar relatorio
+        
+        relatories_id:list = [self._find_element(By.XPATH, '//*[@id="result-table"]/tbody/tr[1]/td[1]').text]
+        
+        self.download_path
+        #verificar itens para download
+        print(P("Iniciando verificação de download", color='cyan'))
+        cont_final: int = 0
+        while True:
+            if cont_final >= 2880:
+                print(P("saida emergencia acionada a espera da geração dos relatorios superou as 1,5 horas"))
+                Logs().register(status='Report', description=f"saida emergencia acionada a espera da geração dos relatorios superou as 1,5 horas")
+                raise TimeoutError("saida emergencia acionada a espera da geração dos relatorios superou as 1,5 horas")
+            else:
+                cont_final += 1
+            if not relatories_id:
+                break
+            
+            try:
+                table = self._find_element(By.ID, 'result-table')
+                tbody = table.find_element(By.TAG_NAME, 'tbody')
+                for tr in tbody.find_elements(By.TAG_NAME, 'tr'):
+                    for id in relatories_id:
+                        if id == tr.find_elements(By.TAG_NAME, 'td')[0].text:
+                            for tag_a in tr.find_elements(By.TAG_NAME, 'a'):
+                                if tag_a.get_attribute('title') == 'Download':
+                                    print(P(f"o {relatories_id=} foi baixado!", color='green'))
+                                    tag_a.send_keys(Keys.ENTER)
+                                    relatories_id.pop(relatories_id.index(id))
+            except:
+                sleep(5)
+                continue
+            
+            self._find_element(By.ID, 'btnProximaDefinicao').click()
+            sleep(5)
+            print(P("Atualizando Pagina"))
+        
+        print(P("verificando pasta de download"))
+        for _ in range(10*60):
+            isnot_excel = False 
+            for file in os.listdir(self.download_path):
+                if not file.endswith(".xlsx"):
+                    isnot_excel = True
+            if not isnot_excel:
+                sleep(2)
+                break
+            else:
+                sleep(1)
+        self._find_element(By.TAG_NAME, 'html').location
+        print(P("extração de relatorios no imobme concluida!"))
+        
+        
         
     def __ultimo_download(self) -> str:
         for _ in range(60):
@@ -312,9 +401,6 @@ class Imobme(Nav):
             else:
                 sleep(1)
         raise Exception("não foi possivel identificar ultimo download")
-        
-        
-              
         
 if __name__ == '__main__':
     pass
