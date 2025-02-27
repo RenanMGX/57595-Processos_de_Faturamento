@@ -9,7 +9,9 @@ if __name__ == "__main__":
     try:
         date = datetime.now()
         
-        processos = Processos(date, pasta=r'W:\BOLETOS_SEGUNDA_VIA_HML')
+        #processos = Processos(date, pasta=r'W:\BOLETOS_SEGUNDA_VIA_HML')
+        processos = Processos(date)
+
         
         print(P('  ---> Iniciando Automação <---  \n', color='green'))
         
@@ -32,7 +34,7 @@ if __name__ == "__main__":
         processos.gerar_boletos(finalizar=True, date=date, etapa='6.gerar_boletos', ultima_etapa='5.verificar_retorno_do_banco') # ETAPA 6 OK
         
         # Etapa 7  repetindo etapa 5 
-        processos.verificar_retorno_do_banco(date=date, etapa='7.verificar_retorno_do_banco', ultima_etapa='6.verificar_lancamentos')
+        processos.verificar_retorno_do_banco(date=date, etapa='7.verificar_retorno_do_banco', ultima_etapa='6.gerar_boletos')
         
         # Etapa 8 repetindo etapa 6
         processos.gerar_boletos(date=date, etapa='8.gerar_boletos', ultima_etapa='7.verificar_retorno_do_banco')

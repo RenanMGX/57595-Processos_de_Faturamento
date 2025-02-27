@@ -5,6 +5,7 @@ from Entities.sap import SAP
 from Entities.tratar_dados import TratarDados, pd
 from Entities.pdf_manipulator import PDFManipulator
 from Entities.dependencies.logs import Logs, traceback
+from Entities.dependencies.config import Config
 from typing import List, Dict
 from time import sleep
 from datetime import datetime
@@ -443,10 +444,21 @@ class Processos:
         
         if date is None:
             date = self.date
-        print(P(f"Executando geração de boletos em {date.strftime('%d/%m/%Y')}", color='yellow'))
+        print(P(f"Executando preparação de lista de envio de e-mails em {date.strftime('%d/%m/%Y')}", color='yellow'))
         
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
             if (not self.etapa.executed_month(etapa) or etapa == ""):
+                planila_clientes_path:str = Config()['path']['planilhaClientes']
+                if os.path.exists(planila_clientes_path):
+                    if planila_clientes_path.lower().endswith('.json'):
+                        df_clientes = pd.read_json(planila_clientes_path)
+                    else:
+                        print(P("    Erro ao carregar planilha de clientes!", color='red'))
+                        raise FileNotFoundError("Arquivo de clientes não encontrado!")
+                else:
+                    print(P("    Erro ao carregar planilha de clientes!", color='red'))
+                    raise FileNotFoundError("Arquivo de clientes não encontrado!")
+                
                 download_path:str = os.path.join(os.getcwd(), 'downloads')
                 
                 if not os.path.exists(download_path):
@@ -469,13 +481,23 @@ class Processos:
                     print(P("    Erro ao extrair previsão de receita!", color='red'))
                     raise FileNotFoundError("Arquivo de previsão de receita não encontrado!")
                 
-                df = TratarDados.load_previReceita(file_prevReceita_path)
-                import pdb; pdb.set_trace()
+                df_previsaoReceita = TratarDados.load_previReceita(file_prevReceita_path)
                 
+                df:pd.DataFrame = TratarDados.generate_df_with_emails(df_clientes=df_clientes, df_previsaoReceita=df_previsaoReceita)
                 
+                emails_to_send, df_files_not_found = TratarDados.generate_files_to_send(df=df, path=self.pasta)
                 
+                df_files_not_found:pd.DataFrame
+                df_files_not_found.to_excel(os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_arquivosNãoEncontrados.xlsx")), index=False)
                 
+                with open('emails_to_send.json', 'w') as _file:
+                    json.dump(emails_to_send, _file)
                 
+                self.etapa.save(etapa)
+                if finalizar:
+                    print(P("Finalizando aplicação...", color='magenta'))
+                    sys.exit()
+                return True
             
             else:
                 print(P(f"    {etapa} já foi executada este mês!", color='cyan'))

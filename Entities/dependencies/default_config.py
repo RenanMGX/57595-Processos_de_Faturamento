@@ -9,9 +9,10 @@ default:Dict[str, Dict[str,object]] = {
     },
     'credenciais': {
         'imobme': 'IMOBME_PRD',
-        'sap': 'SAP_QAS',
+        'sap': 'SAP_PRD',
     },
     'path': {
         "download" : f"C:\\Users\\{getuser()}\\Downloads",
+        "planilhaClientes": f"C:\\Users\\{getuser()}\\PATRIMAR ENGENHARIA S A\\RPA - Documentos\\RPA - Dados\\Relatorio_Imobme_Financeiro\\ClientesContratos.json"
     }
 }

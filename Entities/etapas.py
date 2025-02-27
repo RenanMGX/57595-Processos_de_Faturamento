@@ -26,6 +26,9 @@ class Etapa:
             return json.load(_file)
             
     def save(self, etapa:str):
+        if not etapa:
+            print("Sem Etapa para salvar")
+            return
         data = self.load()
         data[etapa] = datetime.now().isoformat()
         
