@@ -6,6 +6,8 @@ from dependencies.functions import Functions, P
 from time import sleep
 from typing import List, Tuple
 from formulas import formulas
+import locale
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 class TratarDados:
     @staticmethod
@@ -135,9 +137,10 @@ class TratarDados:
                 
                 emails_to_send[value['Email']]["nome"] = value['Cliente Principal']
                 emails_to_send[value['Email']]["empreendimento"] = value['Empreendimento']
-                emails_to_send[value['Email']]["date"] = value['Data Vencimento'].strftime('%m/%Y')
+                emails_to_send[value['Email']]["date"] = value['Data Vencimento'].strftime('%B/%Y').capitalize()
                 emails_to_send[value['Email']]["bloco"] = value['Bloco']
                 emails_to_send[value['Email']]["unidade"] = str(value['Unidade'])
+                emails_to_send[value['Email']]["empresa"] = value['Código SPE']
                 
             else:
                 value['file'] = temp_file_path

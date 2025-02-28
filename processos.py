@@ -6,6 +6,7 @@ from Entities.tratar_dados import TratarDados, pd
 from Entities.pdf_manipulator import PDFManipulator
 from Entities.dependencies.logs import Logs, traceback
 from Entities.dependencies.config import Config
+from Entities.emails import Email
 from typing import List, Dict
 from time import sleep
 from datetime import datetime
@@ -14,6 +15,8 @@ import Entities.utils as utils
 import os
 import json
 import sys
+
+            
 
 lista_indices = [
     r'0,8% a.m.',
@@ -40,7 +43,7 @@ class Processos:
     def relatorios_path(self) -> str:
         return os.path.join(os.getcwd(), 'relatorios')
     
-    def __init__(self, date: datetime, *, pasta: str = r"W:\BOLETOS_SEGUNDA_VIA") -> None:
+    def __init__(self, date: datetime=datetime.now(), *, pasta: str = r"W:\BOLETOS_SEGUNDA_VIA") -> None:
         """
         Inicializa a classe Processos definindo a data de referência e a pasta para armazenar boletos.
 
@@ -59,6 +62,10 @@ class Processos:
         self.date = date
         self.etapa = Etapa()
         self.pasta: str = pasta
+        self.emails_to_send_path:str = os.path.join(os.getcwd(), 'emails_to_send.json')
+        self.emails_to_delete_path:str = os.path.join(os.getcwd(), 'emails_to_delete.json')
+        self.mensagem_html_path:str = os.path.join(os.getcwd(), 'Entities', 'mensagem.html')
+        self.assinatura_path:str = r"\\server011\NETLOGON\ASSINATURA"
         
         if not os.path.exists(self.relatorios_path):
             os.makedirs(self.relatorios_path)
@@ -98,8 +105,8 @@ class Processos:
         
         if (not self.etapa.executed_month(etapa) or etapa == ""):
             bot = Imobme()
-            if bot.verificar_indices(date=utils.primeiro_dia_ultimo_mes(date), lista_indices=lista_indices):
-                if bot.cobranca(utils.primeiro_dia_proximo_mes(date), tamanho_mini_lista=12):
+            if bot.verificar_indices(date=date, lista_indices=lista_indices):
+                if bot.cobranca(date, tamanho_mini_lista=12):
                     self.etapa.save(etapa)
                     print(P("    Imobme Cobrança global executada com sucesso!", color='green'))
                     bot.close()
@@ -147,7 +154,7 @@ class Processos:
             if (not self.etapa.executed_month(etapa) or etapa == ""):
                 sap = SAP()
                 try:
-                    file_path = sap.relatorio_partidas_individuais_cliente(utils.primeiro_dia_proximo_mes(date))
+                    file_path = sap.relatorio_partidas_individuais_cliente(date)
                 except Exception as err:
                     print(P(f"    Erro ao executar o processo! -> {err}", color='red'))
                     Logs().register(status='Error', description=str(err), exception=traceback.format_exc())
@@ -164,9 +171,8 @@ class Processos:
                     docs_path = os.path.join(os.getcwd(), 'docs.json')
                     if os.path.exists(docs_path):
                         os.unlink(docs_path)
-                        
-                    with open(docs_path, 'w') as file:
-                        json.dump(docs, file)
+                                                
+                    utils.jsonFile.write(docs_path, docs)
                     
                     self.etapa.save(etapa)
                     print(P("    Relatório partidas individuais executado com sucesso!", color='green'))
@@ -206,10 +212,10 @@ class Processos:
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
             if (not self.etapa.executed_month(etapa) or etapa == ""):
                 sap = SAP()
-                with open('docs.json', 'r') as file:
-                    data:List[Dict[str,object]] = json.load(file)
+
+                dados:List[Dict[str,object]] = utils.jsonFile.read('docs.json')
                     
-                for dado in data:
+                for dado in dados:
                     if not dado['docs']:
                         print(P(f"    {dado['empresa']} não possui documentos!", color='cyan'))
                         continue
@@ -272,7 +278,7 @@ class Processos:
 
                 lista_campos_vazios = pd.DataFrame({"Empresa": []})
                 for _ in range(timeout):
-                    path = SAP().relatorio_partidas_individuais_cliente(utils.primeiro_dia_proximo_mes(date))
+                    path = SAP().relatorio_partidas_individuais_cliente(date)
                     df = pd.read_excel(path)
 
                     os.unlink(path)
@@ -333,7 +339,7 @@ class Processos:
         
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
             if (not self.etapa.executed_month(etapa) or etapa == ""):
-                path = SAP().relatorio_partidas_individuais_cliente(utils.primeiro_dia_proximo_mes(date))
+                path = SAP().relatorio_partidas_individuais_cliente(date)
                 df = pd.read_excel(path)
                 os.unlink(path)
                 df = df.dropna(subset=['Conta'])
@@ -388,7 +394,7 @@ class Processos:
         
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
             if (not self.etapa.executed_month(etapa) or etapa == ""):
-                if SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, debug=True, mover_pdf=mover_pdf): # O DEBUG ESTA ATIVADO REMOVER PARA PRODUÇÂO
+                if SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, mover_pdf=mover_pdf): # O DEBUG ESTA ATIVADO REMOVER PARA PRODUÇÂO
                     self.etapa.save(etapa)
                     print(P("    Geração de boletos executada com sucesso!", color='green'))
                     if finalizar:
@@ -403,7 +409,7 @@ class Processos:
             print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
             
-    def criptografar_boletos(self):
+    def criptografar_boletos(self, date: datetime | None):
         """
         Realiza a criptografia dos PDFs de boletos armazenados na pasta definida.
 
@@ -420,15 +426,24 @@ class Processos:
         Returns:
             None
         """
+        if date is None:
+            date = self.date
         print(P("Executando criptografia de boletos", color='yellow'))
-        
+
         for file in os.listdir(self.pasta):
             file_path:str = os.path.join(self.pasta, file)
+            
+            file_date = os.path.basename(file_path)
+            file_date = file_date.split('-')[3]
+            if file_date != str(date.month).zfill(2):
+                continue
+            
+            #import pdb; pdb.set_trace()
             try:
                 pdf = PDFManipulator(file_path)
                 if pdf.CPF_CNPJ:
-                    print(P(f"    {pdf.CPF_CNPJ}", color='yellow'))
                     pdf.proteger_pdf()
+                    print(P(f"    Criptografado: {pdf.CPF_CNPJ} - {os.path.basename(file_path)}", color='yellow'))
             except:
                 pass
                 
@@ -470,7 +485,7 @@ class Processos:
                 
                 if extrair_relatorio:
                     bot = Imobme(download_path=download_path)                
-                    bot.extrair_previsaoReceita(initial_date=utils.primeiro_dia_proximo_mes(date), final_date=utils.ultimo_dia_proximo_mes(date))
+                    bot.extrair_previsaoReceita(initial_date=utils.primeiro_dia_mes(date), final_date=utils.ultimo_dia_mes(date))
                     bot.close()
                     del bot
                 
@@ -489,9 +504,9 @@ class Processos:
                 
                 df_files_not_found:pd.DataFrame
                 df_files_not_found.to_excel(os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_arquivosNãoEncontrados.xlsx")), index=False)
-                
-                with open('emails_to_send.json', 'w') as _file:
-                    json.dump(emails_to_send, _file)
+                    
+                utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
+                utils.jsonFile.write(self.emails_to_delete_path, [])
                 
                 self.etapa.save(etapa)
                 if finalizar:
@@ -505,9 +520,135 @@ class Processos:
             print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
 
-        print("tes")
         return False
         
+    def enviar_emails(self, *,
+                      finalizar: bool=False,
+                      etapa:str,
+                      ultima_etapa:str="",
+                      ):
+        
+        print(P(f"Executando envio de e-mails", color='yellow'))
+        
+        if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if (not self.etapa.executed_month(etapa) or etapa == ""):
+                emails_to_send:dict = utils.jsonFile.read(self.emails_to_send_path)
+                print(P(f"    {len(emails_to_send)} e-mails para enviar!", color='cyan'))
+                
+                emails_to_delete:list
+                if not os.path.exists(self.emails_to_delete_path):
+                    utils.jsonFile.write(self.emails_to_delete_path, data=[])
+                else:
+                    for value in utils.jsonFile.read(self.emails_to_delete_path):
+                        emails_to_send.pop(value)
+                    utils.jsonFile.write(self.emails_to_delete_path, data=[])
+                    utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
+                
+                send_email = Email()
+                
+                if not emails_to_send:
+                    self.etapa.save(etapa)
+                    if finalizar:
+                        print(P("Finalizando aplicação...", color='magenta'))
+                        sys.exit()
+                    print(P("    Nenhum e-mail para enviar!", color='cyan'))
+                    return True
+
+                
+                count = 1
+                for email, dados in emails_to_send.items():
+                    try:
+                        empresa:str = dados['empresa']
+                        empresa = "Patrimar" if empresa.upper().startswith("P") else "Novolar" if empresa.upper().startswith("N") else ""
+                        
+                        assunto = f"Boleto {empresa} - {dados['date']} - {dados['empreendimento']} - {dados['bloco']} - Unidade {dados['unidade']}"
+                        
+                        assinatura = ""
+                        if os.path.exists(self.assinatura_path):
+                            assinatura = [os.path.join(self.assinatura_path, file) for file in os.listdir(self.assinatura_path)][0]
+                        
+                        if assinatura:
+                            assinatura = f'<img src="{assinatura}" alt="assinatura" style="height:1.947in;width:4.583in">'
+                        
+                        _msg = utils.jsonFile.read_qualquer_arquivo(self.mensagem_html_path)
+                        msg = f'<p style="text-decoration: underline;">  --->  Este esmail deveria ser entregue ao {email}  <---  </p>'
+                        msg += _msg
+                        msg = msg.replace("{{nome_cliente}}", dados['nome'].title())\
+                                .replace("{{data}}", dados['date'])\
+                                .replace("{{nome_empreendimento}}", dados['empreendimento'])\
+                                .replace("{{empresa}}", empresa.title())\
+                                .replace("{{relacionamento_email}}", f"relacionamento@{empresa.lower()}.com.br")\
+                                .replace("{{site}}", f"www.{empresa.lower()}.com.br")\
+                                .replace("{{assinatura}}", assinatura)
+                            
+                        # send_email.mensagem(
+                        #     Destino="thais.reis@patrimar.com.br", # <------------------- alterar email para produção
+                        #     #Destino="renan.oliveira@patrimar.com.br",
+                        #     Assunto=assunto,
+                        #     Corpo_email=msg,
+                        #     _type='html'
+                        # )
+                        
+                        # for file in dados['files']:
+                        #     send_email.Anexo(
+                        #         Attachment_path=file
+                        #     )
+                            
+                        # send_email.send()    
+                        
+                        print(P(f"    {assunto}  --> Enviado!", color='green'))                    
+                        
+                        emails_to_delete = utils.jsonFile.read(self.emails_to_delete_path)
+                        emails_to_delete.append(email)
+                        utils.jsonFile.write(self.emails_to_delete_path, emails_to_delete)
+                    except Exception as err:
+                        Logs().register(status='Error', description=str(err), exception=traceback.format_exc())
+                        print(type(err), err)
+                        
+                    if count >= 5:
+                        break
+                    count += 1
+                
+                for value in utils.jsonFile.read(self.emails_to_delete_path):
+                    emails_to_send.pop(value)
+                utils.jsonFile.write(self.emails_to_delete_path, data=[])
+                utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
+                
+                emails_to_send:dict = utils.jsonFile.read(self.emails_to_send_path)
+                print(P(f"    {len(emails_to_send)} e-mails restantes!", color='cyan'))
+
+                print(P("    E-mails enviados com sucesso!", color='green'))      
+                self.etapa.save(etapa)
+                if finalizar:
+                    print(P("Finalizando aplicação...", color='magenta'))
+                    sys.exit()
+                return True
+            
+            else:
+                print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
+        else:
+            print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
+            sys.exit()
+        return False
+    
+    def finalizar(self, *,
+                      etapa:str,
+                      ultima_etapa:str="",
+                      ):
+        
+        print(P(f"Executando envio de e-mails", color='yellow'))
+        
+        if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if (not self.etapa.executed_month(etapa) or etapa == ""):
+                self.etapa.save(etapa)
+                print(P("Processo de Faturamento Finalizado!", color='green'))
+                sys.exit()
+            else:
+                print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
+        else:
+            print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
+            sys.exit()
+        return False
 
 if __name__ == "__main__":
     pass

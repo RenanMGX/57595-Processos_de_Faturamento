@@ -5,6 +5,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 from Entities.dependencies.config import Config
 from Entities.dependencies.credenciais import Credential
+from typing import Literal
 import os
 
 class Email:
@@ -12,7 +13,7 @@ class Email:
         self.__smtp_server = 'smtp-mail.outlook.com'
         self.__smtp_port = 587
         
-        crd:dict = Credential(Config()['credential']['email']).load()
+        crd:dict = Credential(Config()['credenciais']['email']).load()
         self.__username = crd['email']
         self.__password = crd['password']
         
@@ -23,6 +24,7 @@ class Email:
                 Destino:str,
                 Assunto:str= "",
                 Corpo_email:str,
+                _type:Literal['plain', 'html']='plain'
             ):
         
         msg = MIMEMultipart()
@@ -30,7 +32,7 @@ class Email:
         msg['To'] = Destino
         msg['Subject'] = Assunto
         
-        msg.attach(MIMEText(Corpo_email, 'plain'))
+        msg.attach(MIMEText(Corpo_email, _type, 'utf-8'))
 
         self.__msg = msg
         return self
