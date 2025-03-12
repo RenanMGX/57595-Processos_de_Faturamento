@@ -2,9 +2,11 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
 from email import encoders
 from Entities.dependencies.config import Config
 from Entities.dependencies.credenciais import Credential
+from Entities.dependencies.functions import P
 from typing import Literal
 import os
 
@@ -55,22 +57,44 @@ class Email:
             return self
         except KeyError:
             raise Exception(f"Crie um corpo de email primeiro usando '.mensagem'")
-            
     
-    def send(self):
+    def addImagemCid(self, *, Attachment_path:str, tag:str):
         try:
             self.__msg
+            if not os.path.exists(Attachment_path):
+                raise FileNotFoundError(f"Arquivo não encontrado '{Attachment_path}'")
+                
+            filename = os.path.basename(Attachment_path)
+            with open(Attachment_path, 'rb') as _file:
+                img_data = _file.read()
             
-            with smtplib.SMTP(self.__smtp_server, self.__smtp_port) as server:
-                server.starttls()
-                server.login(self.__username, self.__password)
-                server.sendmail(self.__msg['From'], self.__msg['To'], self.__msg.as_string())
+            imagem = MIMEImage(img_data)
+            imagem.add_header('Content-ID', f'<{tag}>')
             
-            print("Emai enviado")
-            del self.__msg
-        
+            self.__msg.attach(imagem)
+            return self
         except KeyError:
-            print("Crie um corpo para o email primeiro usando '.mensagem'")
+            raise Exception(f"Crie um corpo de email primeiro usando '.mensagem'")
+          
+    
+    def send(self, *, msg_envio:str=""):
+        try:
+            self.__msg
+        except KeyError:
+            print(P("Crie um corpo para o email primeiro usando '.mensagem'", color='red'))
+            
+        with smtplib.SMTP(self.__smtp_server, self.__smtp_port) as server:
+            server.starttls()
+            server.login(self.__username, self.__password)
+            server.sendmail(self.__msg['From'], self.__msg['To'], self.__msg.as_string())
+            
+        if msg_envio:
+            print(P(f"{msg_envio} - Emai enviado", color='green'))
+        else:
+            print(P("Emai enviado", color='green'))
+            
+        del self.__msg
+        
         
 if __name__ == "__main__":
     pass        

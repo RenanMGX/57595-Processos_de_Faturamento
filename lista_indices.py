@@ -1,0 +1,18 @@
+lista_indices = [
+    r'0,8% a.m.',
+    r'0,5% a.m.',
+    r'JUROS 1%',
+    r'JUROS 0,5%',
+    r'INCC',
+    r'CDI',
+    r'CDI 3% a.a.',
+    r'IPCA',
+    r'IPCA 12a.a.',
+    r'IPCA 1%',
+    r'POUPA 12',
+    r'POUPA 15',
+    r'POUPA 28',
+    r'IGPM',
+    r'IGPM 0,5%',
+    r'IGPM 1%',
+]

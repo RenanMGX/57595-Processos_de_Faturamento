@@ -20,7 +20,7 @@ if __name__ == "__main__":
         processos.imobme_cobranca_global(finalizar=True, etapa='1.imobme_cobranca_global') # ETAPA 1 OK
         
         # Etapa 2       
-        processos.rel_partidas_individuais(etapa='2.rel_partidas_individuais', ultima_etapa='1.imobme_cobranca_global', remover_empresas=["P027"]) # ETAPA 2 OK
+        processos.rel_partidas_individuais(etapa='2.rel_partidas_individuais', ultima_etapa='1.imobme_cobranca_global')#, remover_empresas=["P027"]) # ETAPA 2 OK
         
         # Etapa 3
         processos.gerar_arquivos_de_remessa(finalizar=True ,etapa='3.gerar_arquivos_de_remessa', ultima_etapa='2.rel_partidas_individuais')# ETAPA 3 OK

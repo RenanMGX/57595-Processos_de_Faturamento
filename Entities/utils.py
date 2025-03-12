@@ -32,6 +32,8 @@ def primeiro_dia_proximo_mes(date:datetime) -> datetime:
 def primeiro_dia_mes(date:datetime) -> datetime:
     return date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
+
+
 def ultimo_dia_mes(date:datetime) -> datetime:
     return (date + relativedelta(months=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0) - relativedelta(days=1)
 

@@ -10,33 +10,11 @@ from Entities.emails import Email
 from typing import List, Dict
 from time import sleep
 from datetime import datetime
+from lista_indices import lista_indices
 
 import Entities.utils as utils
 import os
-import json
 import sys
-
-            
-
-lista_indices = [
-    r'0,8% a.m.',
-    r'0,5% a.m.',
-    r'JUROS 1%',
-    r'JUROS 0,5%',
-    r'INCC',
-    r'CDI',
-    r'CDI 3% a.a.',
-    r'IPCA',
-    r'IPCA 12a.a.',
-    r'IPCA 1%',
-    r'POUPA 12',
-    r'POUPA 15',
-    r'POUPA 28',
-    r'IGPM',
-    r'IGPM 0,5%',
-    r'IGPM 1%',
-]
-
 
 class Processos:
     @property
@@ -64,7 +42,7 @@ class Processos:
         self.pasta: str = pasta
         self.emails_to_send_path:str = os.path.join(os.getcwd(), 'emails_to_send.json')
         self.emails_to_delete_path:str = os.path.join(os.getcwd(), 'emails_to_delete.json')
-        self.mensagem_html_path:str = os.path.join(os.getcwd(), 'Entities', 'mensagem.html')
+        self.mensagem_html_path:str = os.path.join(os.getcwd(), 'Entities', 'layout_email')
         self.assinatura_path:str = r"\\server011\NETLOGON\ASSINATURA"
         
         if not os.path.exists(self.relatorios_path):
@@ -122,7 +100,6 @@ class Processos:
         else:
             print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         return False
-    
            
     def rel_partidas_individuais(self, date: datetime | None = None, *, etapa:str, ultima_etapa:str="", remover_empresas:list=[]):
         """
@@ -184,7 +161,6 @@ class Processos:
         else:
             print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
-            
             
     def gerar_arquivos_de_remessa(self , *, finalizar: bool=False, etapa:str, ultima_etapa:str=""):
         """
@@ -299,7 +275,6 @@ class Processos:
                     
                     sleep(15)
                 
-                
                 Logs().register(status='Error', description=f"Erro ao executar verificação de lançamentos as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido {lista_campos_vazios["Empresa"].unique().tolist()}", exception=traceback.format_exc())
                 print(P(f"    Erro ao executar verificação de lançamentos! as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido {lista_campos_vazios["Empresa"].unique().tolist()}", color='red'))
                 lista_campos_vazios.to_excel(os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_verificarLancamentos.xlsx")), index=False)
@@ -308,7 +283,6 @@ class Processos:
         else:
             print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
-        
         return False
 
     def verificar_retorno_do_banco(self, date: datetime | None = None, *, finalizar: bool=False, etapa:str, ultima_etapa:str=""):
@@ -437,8 +411,7 @@ class Processos:
             file_date = file_date.split('-')[3]
             if file_date != str(date.month).zfill(2):
                 continue
-            
-            #import pdb; pdb.set_trace()
+
             try:
                 pdf = PDFManipulator(file_path)
                 if pdf.CPF_CNPJ:
@@ -521,7 +494,8 @@ class Processos:
             sys.exit()
 
         return False
-        
+    
+    
     def enviar_emails(self, *,
                       finalizar: bool=False,
                       etapa:str,
@@ -553,13 +527,22 @@ class Processos:
                         sys.exit()
                     print(P("    Nenhum e-mail para enviar!", color='cyan'))
                     return True
-
                 
                 count = 1
+                empresa_to_valid = ["patrimar", "novolar"] # temporario
                 for email, dados in emails_to_send.items():
                     try:
                         empresa:str = dados['empresa']
+                        if not empresa_to_valid:
+                            break
+                        
                         empresa = "Patrimar" if empresa.upper().startswith("P") else "Novolar" if empresa.upper().startswith("N") else ""
+                        
+                        if empresa.lower() in empresa_to_valid:
+                           empresa_to_valid.pop(empresa_to_valid.index(empresa.lower()))
+                        else:
+                            continue
+                        
                         
                         assunto = f"Boleto {empresa} - {dados['date']} - {dados['empreendimento']} - {dados['bloco']} - Unidade {dados['unidade']}"
                         
@@ -570,33 +553,51 @@ class Processos:
                         if assinatura:
                             assinatura = f'<img src="{assinatura}" alt="assinatura" style="height:1.947in;width:4.583in">'
                         
-                        _msg = utils.jsonFile.read_qualquer_arquivo(self.mensagem_html_path)
-                        msg = f'<p style="text-decoration: underline;">  --->  Este esmail deveria ser entregue ao {email}  <---  </p>'
-                        msg += _msg
-                        msg = msg.replace("{{nome_cliente}}", dados['nome'].title())\
-                                .replace("{{data}}", dados['date'])\
-                                .replace("{{nome_empreendimento}}", dados['empreendimento'])\
-                                .replace("{{empresa}}", empresa.title())\
-                                .replace("{{relacionamento_email}}", f"relacionamento@{empresa.lower()}.com.br")\
-                                .replace("{{site}}", f"www.{empresa.lower()}.com.br")\
-                                .replace("{{assinatura}}", assinatura)
-                            
-                        # send_email.mensagem(
-                        #     Destino="thais.reis@patrimar.com.br", # <------------------- alterar email para produção
-                        #     #Destino="renan.oliveira@patrimar.com.br",
-                        #     Assunto=assunto,
-                        #     Corpo_email=msg,
-                        #     _type='html'
-                        # )
+                        msg = utils.jsonFile.read_qualquer_arquivo(os.path.join(self.mensagem_html_path, f'{empresa.lower()}.html'))
+                        #msg = utils.jsonFile.read_qualquer_arquivo(os.path.join(self.mensagem_html_path, f'teste.html'))
                         
-                        # for file in dados['files']:
-                        #     send_email.Anexo(
-                        #         Attachment_path=file
-                        #     )
-                            
-                        # send_email.send()    
+                        msg = msg.replace("{{teste}}", f'<span style="text-decoration: underline">este é um teste de envio de e-mail e deveria ser entregue ao {email}</span>') # <------------------- campo para teste deixar limpo para produção
+                        msg = msg.replace("{{nome_empreendimento}}", dados['empreendimento'])
+                        msg = msg.replace("{{bloco}}", dados['bloco'])
+                        msg = msg.replace("{{unidade}}", f"Unidade {dados['unidade']}")
+                        msg = msg.replace("{{nome_cliente}}", dados['nome'].title())
+                        msg = msg.replace("{{data}}", dados['date'])
                         
-                        print(P(f"    {assunto}  --> Enviado!", color='green'))                    
+                        
+                        
+                        # msg = f'<p style="text-decoration: underline;">  --->  Este esmail deveria ser entregue ao {email}  <---  </p>'
+                        # msg += _msg
+                        # msg = msg.replace("{{nome_cliente}}", dados['nome'].title())\
+                        #         .replace("{{data}}", dados['date'])\
+                        #         .replace("{{nome_empreendimento}}", dados['empreendimento'])\
+                        #         .replace("{{empresa}}", empresa.title())\
+                        #         .replace("{{relacionamento_email}}", f"relacionamento@{empresa.lower()}.com.br")\
+                        #         .replace("{{site}}", f"www.{empresa.lower()}.com.br")\
+                        #         .replace("{{assinatura}}", assinatura)
+                        
+                        #import pdb; pdb.set_trace()
+                        
+                        send_email.mensagem(
+                            #Destino=email, # <------------------- alterar email para produção
+                            Destino='renan.oliveira@patrimar.com.br',
+                            Assunto=assunto,
+                            Corpo_email=msg,
+                            _type='html'
+                        )
+                        
+                        for file in dados['files']:
+                            send_email.Anexo(
+                                Attachment_path=file
+                            )
+                          
+                        
+                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'emp_{empresa.lower()}.png'), tag="emp_header")  
+                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'logo_{empresa.lower()}.png'), tag="logo_header")
+                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'patrimar_vertical.png'), tag='patrimar_vertical')
+                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'novolar_vertical.png'), tag='novolar_vertical')
+                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'bt_portal_{empresa.lower()}.png'), tag='botao')
+                        
+                        send_email.send(msg_envio=assunto)    
                         
                         emails_to_delete = utils.jsonFile.read(self.emails_to_delete_path)
                         emails_to_delete.append(email)
@@ -623,7 +624,6 @@ class Processos:
                     print(P("Finalizando aplicação...", color='magenta'))
                     sys.exit()
                 return True
-            
             else:
                 print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         else:
