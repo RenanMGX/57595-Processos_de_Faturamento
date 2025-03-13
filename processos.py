@@ -3,7 +3,7 @@ from Entities.etapas import Etapa
 from Entities.dependencies.functions import Functions
 from Entities.sap import SAP
 from Entities.tratar_dados import TratarDados, pd
-from Entities.pdf_manipulator import PDFManipulator
+
 from Entities.dependencies.logs import Logs, traceback
 from Entities.dependencies.config import Config
 from Entities.emails import Email
@@ -17,6 +17,7 @@ from Entities.informativo import Informativo
 import Entities.utils as utils
 import os
 import sys
+import multiprocessing
 
 class Processos:
     @property
@@ -398,7 +399,7 @@ class Processos:
             print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
             
-    def criptografar_boletos(self, date: datetime | None):
+    def criptografar_boletos(self, date: datetime | None=None, quant_nucleos:int=5):
         """
         Realiza a criptografia dos PDFs de boletos armazenados na pasta definida.
 
@@ -417,23 +418,42 @@ class Processos:
         """
         if date is None:
             date = self.date
+
         print(P("Executando criptografia de boletos", color='yellow'))
 
+        lista_files = []
         for file in os.listdir(self.pasta):
             file_path:str = os.path.join(self.pasta, file)
+            if not os.path.isfile(file_path):
+                continue
             
             file_date = os.path.basename(file_path)
-            file_date = file_date.split('-')[3]
+            if not file_date.lower().endswith('.pdf'):
+                continue
+            
+            try:
+                file_date = file_date.split('-')[3]
+            except:
+                print(os.path.basename(file_path))
+                continue
             if file_date != str(date.month).zfill(2):
                 continue
-
-            try:
-                pdf = PDFManipulator(file_path)
-                if pdf.CPF_CNPJ:
-                    pdf.proteger_pdf()
-                    print(P(f"    Criptografado: {pdf.CPF_CNPJ} - {os.path.basename(file_path)}", color='yellow'))
-            except:
-                pass
+            lista_files.append(file_path)
+            
+        print(P(f"Quantidade de arquivos: {len(lista_files)}", color='cyan'))
+        
+                    
+        lista_arquivos_para_multiprocess = utils.split_list(lista_files, 5)
+        lista_multiprocess:List[multiprocessing.Process] = []
+        for lista in lista_arquivos_para_multiprocess:
+            lista_multiprocess.append(multiprocessing.Process(target=utils.cripto, args=(lista,)))
+            
+        #import pdb; pdb.set_trace()
+        for processo in lista_multiprocess:
+            processo.start()
+            
+        for processo in lista_multiprocess:
+            processo.join()
                 
         print(P("    Criptografia de boletos executada com sucesso!", color='green'))
         
@@ -595,12 +615,17 @@ class Processos:
                         msg = msg.replace("{{data}}", dados['date'])
                         
                         if testes:
-                            destino='thays.freitas@patrimar.com.br'
+                            destino=['thays.freitas@patrimar.com.br', 'renan.oliveira@patrimar.com.br']
+                            cc = "kleryson.lara@patrimar.com.br"
                         else:
-                            destino = email                  
+                            destino = email 
+                            cc = ""    
+                            
+                                     
                         send_email.mensagem(
                             Destino=destino,
                             Assunto=assunto,
+                            CC = cc,
                             Corpo_email=msg,
                             _type='html'
                         )

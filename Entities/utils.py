@@ -6,6 +6,8 @@ from typing import List, Dict, Union
 import os
 import re
 import shutil
+from Entities.pdf_manipulator import PDFManipulator
+from Entities.dependencies.functions import P
 import locale
 import json
 locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
@@ -92,7 +94,23 @@ def mover_pdfs(path:str, *, pasta:str="Boletos", _date: datetime=datetime.now())
         if os.path.exists(path_target):
             os.remove(path_target)
         shutil.move(file['file_path'], path_target) #type: ignore
-        
+    
+def split_list(lst, partes):
+    tamanho = len(lst)
+    k, r = divmod(tamanho, partes)
+    return [lst[i * k + min(i, r):(i + 1) * k + min(i + 1, r)] for i in range(partes)]    
+
+def cripto(pdf_paths:list):
+    for file_path in pdf_paths:
+        try:
+            pdf = PDFManipulator(file_path)
+            if pdf.CPF_CNPJ:
+                pdf.proteger_pdf()
+                print(P(f"    Criptografado: {pdf.CPF_CNPJ} - {os.path.basename(file_path)}", color='yellow'))
+        except Exception as err:
+            print(P(f"{err}", color='red'))
+
+    
 class jsonFile:
     @staticmethod
     def read(path:str):

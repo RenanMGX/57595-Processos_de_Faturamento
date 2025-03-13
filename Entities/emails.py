@@ -9,6 +9,8 @@ from Entities.dependencies.credenciais import Credential
 from Entities.dependencies.functions import P
 from typing import Literal
 import os
+import re
+
 
 class Email:
     def __init__(self, crd_email:Literal['email', 'email_debug']|str) -> None:
@@ -22,7 +24,8 @@ class Email:
         
     def mensagem(
                 self, *,
-                Destino:str,
+                Destino:str|list,
+                CC:str|list="",
                 Assunto:str= "",
                 Corpo_email:str,
                 _type:Literal['plain', 'html']='plain'
@@ -30,7 +33,9 @@ class Email:
         
         msg = MIMEMultipart()
         msg['From'] = self.__username
-        msg['To'] = Destino
+        msg['To'] = Destino if isinstance(Destino, str) else ','.join(Destino)
+        if CC:
+            msg['CC'] = CC if isinstance(CC, str) else ','.join(CC)
         msg['Subject'] = Assunto
         
         msg.attach(MIMEText(Corpo_email, _type, 'utf-8'))
@@ -81,11 +86,19 @@ class Email:
             self.__msg
         except KeyError:
             print(P("Crie um corpo para o email primeiro usando '.mensagem'", color='red'))
-            
+        
+        destinatarios = []
+        for campo in ['To', 'CC']:
+            emails = self.__msg.get(campo, '')
+            if emails:
+                # Separa os endereços por vírgula ou ponto e vírgula e remove espaços em branco
+                enderecos = re.split(r'[;,]', emails)
+                destinatarios += [email.strip() for email in enderecos if email.strip()]
+
         with smtplib.SMTP(self.__smtp_server, self.__smtp_port) as server:
             server.starttls()
             server.login(self.__username, self.__password)
-            server.sendmail(self.__msg['From'], self.__msg['To'], self.__msg.as_string())
+            server.sendmail(self.__msg['From'], destinatarios, self.__msg.as_string())
             
         if msg_envio:
             print(P(f"{msg_envio} - Emai enviado", color='green'))
