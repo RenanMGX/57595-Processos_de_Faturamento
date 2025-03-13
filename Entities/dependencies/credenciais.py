@@ -127,7 +127,6 @@ class Credential:
 if __name__ == "__main__":
     #crd = Credential('IMOBME_QAS')
     #crd = Credential('IMOBME_PRD')
-    crd = Credential('Microsoft-RPA')
-    
+    crd = Credential('Email-Boletos')
     
     print(crd.load())

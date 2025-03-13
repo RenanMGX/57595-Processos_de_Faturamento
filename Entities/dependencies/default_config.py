@@ -10,7 +10,8 @@ default:Dict[str, Dict[str,object]] = {
     'credenciais': {
         'imobme': 'IMOBME_PRD',
         'sap': 'SAP_PRD',
-        'email': 'Microsoft-RPA'
+        'email': 'Email-Boletos',
+        'email_debug': 'Microsoft-RPA'
     },
     'path': {
         "download" : f"C:\\Users\\{getuser()}\\Downloads",

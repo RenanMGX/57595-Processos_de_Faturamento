@@ -11,15 +11,14 @@ from typing import Literal
 import os
 
 class Email:
-    def __init__(self) -> None:
+    def __init__(self, crd_email:Literal['email', 'email_debug']|str) -> None:
         self.__smtp_server = 'smtp-mail.outlook.com'
         self.__smtp_port = 587
         
-        crd:dict = Credential(Config()['credenciais']['email']).load()
+        crd:dict = Credential(Config()['credenciais'][crd_email]).load()
         self.__username = crd['email']
         self.__password = crd['password']
         
-
         
     def mensagem(
                 self, *,
@@ -44,7 +43,7 @@ class Email:
             self.__msg
             if not os.path.exists(Attachment_path):
                 raise FileNotFoundError(f"Arquivo não encontrado '{Attachment_path}'")
-                
+            
             filename = os.path.basename(Attachment_path)
             with open(Attachment_path, 'rb') as _file:
                 part = MIMEBase('application', 'octet-stream')

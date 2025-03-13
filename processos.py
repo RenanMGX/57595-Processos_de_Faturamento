@@ -11,6 +11,8 @@ from typing import List, Dict
 from time import sleep
 from datetime import datetime
 from lista_indices import lista_indices
+from Entities.informativo import Informativo
+
 
 import Entities.utils as utils
 import os
@@ -44,6 +46,9 @@ class Processos:
         self.emails_to_delete_path:str = os.path.join(os.getcwd(), 'emails_to_delete.json')
         self.mensagem_html_path:str = os.path.join(os.getcwd(), 'Entities', 'layout_email')
         self.assinatura_path:str = r"\\server011\NETLOGON\ASSINATURA"
+        self.email_to_send_logs:str = "contasareceber@patrimar.com.br"
+        
+        self.informativo = Informativo(email=self.email_to_send_logs, assunto="Informativo da Automação do Processo de Faturamento")
         
         if not os.path.exists(self.relatorios_path):
             os.makedirs(self.relatorios_path)
@@ -86,7 +91,7 @@ class Processos:
             if bot.verificar_indices(date=date, lista_indices=lista_indices):
                 if bot.cobranca(date, tamanho_mini_lista=12):
                     self.etapa.save(etapa)
-                    print(P("    Imobme Cobrança global executada com sucesso!", color='green'))
+                    self.informativo.sucess("Imobme Cobrança global executada com sucesso!")
                     bot.close()
                     del bot
                     if finalizar:
@@ -94,9 +99,9 @@ class Processos:
                         sys.exit()                        
                     return True
                 else:
-                    print(P("    Erro ao executar Imobme cobrança global!", color='red'))
-            else:
-                print(P("    Erro ao verificar indices!", color='red'))
+                    self.informativo.error("Erro ao executar Imobme cobrança global!")
+            else:                
+                self.informativo.error("Erro ao executar Imobme cobrança global, índices não aprovados!")
         else:
             print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         return False
@@ -133,8 +138,7 @@ class Processos:
                 try:
                     file_path = sap.relatorio_partidas_individuais_cliente(date)
                 except Exception as err:
-                    print(P(f"    Erro ao executar o processo! -> {err}", color='red'))
-                    Logs().register(status='Error', description=str(err), exception=traceback.format_exc())
+                    self.informativo.error(f"Erro ao executar o processo! -> {err}")
                     return False
                 finally:
                     sap.fechar_sap()
@@ -152,10 +156,10 @@ class Processos:
                     utils.jsonFile.write(docs_path, docs)
                     
                     self.etapa.save(etapa)
-                    print(P("    Relatório partidas individuais executado com sucesso!", color='green'))
+                    self.informativo.sucess("Relatório partidas individuais executado com sucesso!")
                     return True
                 else:
-                    print(P("    Erro ao executar relatório partidas individuais!", color='red'))
+                    self.informativo.error("Erro ao executar relatório partidas individuais!")
             else:
                 print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         else:
@@ -190,7 +194,7 @@ class Processos:
                 sap = SAP()
 
                 dados:List[Dict[str,object]] = utils.jsonFile.read('docs.json')
-                    
+                
                 for dado in dados:
                     if not dado['docs']:
                         print(P(f"    {dado['empresa']} não possui documentos!", color='cyan'))
@@ -205,7 +209,7 @@ class Processos:
                     
                 sap.fechar_sap()
                 self.etapa.save(etapa)
-                print(P("    Geração de arquivos de remessa executada com sucesso!", color='green'))
+                self.informativo.sucess("Geração de arquivos de remessa executada com sucesso!")
                 if finalizar:
                     print(P("Finalizando aplicação...", color='magenta'))
                     sys.exit()
@@ -265,7 +269,7 @@ class Processos:
                     
                     if (df_campos:=df[df['Solicitação de L/C'].isna()]).empty:
                         self.etapa.save(etapa)
-                        print(P("    Verificação de lançamentos executada com sucesso!", color='green'))
+                        self.informativo.sucess("Verificação de lançamentos executada com sucesso!")
                         if finalizar:
                             print(P("Finalizando aplicação...", color='magenta'))
                             sys.exit()
@@ -275,9 +279,14 @@ class Processos:
                     
                     sleep(15)
                 
-                Logs().register(status='Error', description=f"Erro ao executar verificação de lançamentos as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido {lista_campos_vazios["Empresa"].unique().tolist()}", exception=traceback.format_exc())
-                print(P(f"    Erro ao executar verificação de lançamentos! as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido {lista_campos_vazios["Empresa"].unique().tolist()}", color='red'))
-                lista_campos_vazios.to_excel(os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_verificarLancamentos.xlsx")), index=False)
+                file_path = os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_verificarLancamentos.xlsx"))
+                lista_campos_vazios.to_excel(file_path, index=False)
+                self.informativo.error(f"Erro ao executar verificação de lançamentos as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido:\n- {'\n- '.join(lista_campos_vazios["Empresa"].unique().tolist())}",
+                                       anexo=[
+                                           file_path
+                                       ])
+                os.unlink(file_path)
+                
             else:
                 print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         else:
@@ -322,10 +331,16 @@ class Processos:
                     df['Chave referência 3'].isna()
                 ]
                 if not filtro.empty:
-                    filtro.to_excel(os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_verificarRetornoBanco.xlsx")), index=False)
+                    file_path = os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_verificarRetornoBanco.xlsx"))
+                    filtro.to_excel(file_path, index=False)
+                    self.informativo.error(f"Erro ao executar verificação de retorno do banco, registros sem 'Chave referência 3' foram encontrados!",
+                                           anexo=[
+                                               file_path
+                                           ])
+                    os.unlink(file_path)
                 
                 self.etapa.save(etapa)
-                print(P("    Verificação de retorno do banco executada com sucesso!", color='green'))
+                self.informativo.sucess("Verificação de retorno do banco executada com sucesso!")
                 if finalizar:
                     print(P("Finalizando aplicação...", color='magenta'))
                     sys.exit()
@@ -368,15 +383,15 @@ class Processos:
         
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
             if (not self.etapa.executed_month(etapa) or etapa == ""):
-                if SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, mover_pdf=mover_pdf): # O DEBUG ESTA ATIVADO REMOVER PARA PRODUÇÂO
+                if SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, mover_pdf=mover_pdf):
                     self.etapa.save(etapa)
-                    print(P("    Geração de boletos executada com sucesso!", color='green'))
+                    self.informativo.sucess("Geração de boletos executada com sucesso!")
                     if finalizar:
                         print(P("Finalizando aplicação...", color='magenta'))
                         sys.exit()
                     return True
                 else:
-                    print(P("    Erro ao executar geração de boletos!", color='red'))
+                    self.informativo.error("Erro ao executar geração de boletos!")
             else:
                 print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         else:
@@ -476,12 +491,20 @@ class Processos:
                 emails_to_send, df_files_not_found = TratarDados.generate_files_to_send(df=df, path=self.pasta)
                 
                 df_files_not_found:pd.DataFrame
-                df_files_not_found.to_excel(os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_arquivosNãoEncontrados.xlsx")), index=False)
+                if not df_files_not_found.empty:
+                    file_path = os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_arquivosNãoEncontrados.xlsx"))
+                    df_files_not_found.to_excel(file_path, index=False)
+                    self.informativo.error(f"Erro ao executar preparação de lista de envio de e-mails, arquivos não encontrados!",
+                                           anexo=[
+                                               file_path
+                                           ])
+                    os.unlink(file_path)
                     
                 utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
                 utils.jsonFile.write(self.emails_to_delete_path, [])
                 
                 self.etapa.save(etapa)
+                self.informativo.sucess("Preparação de lista de envio de e-mails executada com sucesso!")
                 if finalizar:
                     print(P("Finalizando aplicação...", color='magenta'))
                     sys.exit()
@@ -500,6 +523,7 @@ class Processos:
                       finalizar: bool=False,
                       etapa:str,
                       ultima_etapa:str="",
+                      testes:bool=False
                       ):
         
         print(P(f"Executando envio de e-mails", color='yellow'))
@@ -518,7 +542,7 @@ class Processos:
                     utils.jsonFile.write(self.emails_to_delete_path, data=[])
                     utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
                 
-                send_email = Email()
+                send_email = Email('email')
                 
                 if not emails_to_send:
                     self.etapa.save(etapa)
@@ -528,20 +552,23 @@ class Processos:
                     print(P("    Nenhum e-mail para enviar!", color='cyan'))
                     return True
                 
-                count = 1
-                empresa_to_valid = ["patrimar", "novolar"] # temporario
+                if testes:
+                    count = 1  # temporario
+                    empresa_to_valid = ["patrimar", "novolar"] # temporario
                 for email, dados in emails_to_send.items():
                     try:
                         empresa:str = dados['empresa']
-                        if not empresa_to_valid:
-                            break
+                        if testes:
+                            if not empresa_to_valid: #type:ignore temporario 
+                                break # temporario
                         
                         empresa = "Patrimar" if empresa.upper().startswith("P") else "Novolar" if empresa.upper().startswith("N") else ""
                         
-                        if empresa.lower() in empresa_to_valid:
-                           empresa_to_valid.pop(empresa_to_valid.index(empresa.lower()))
-                        else:
-                            continue
+                        if testes:
+                            if empresa.lower() in empresa_to_valid: #type:ignore temporario
+                               empresa_to_valid.pop(empresa_to_valid.index(empresa.lower())) #type:ignore temporario
+                            else: # temporario
+                                continue # temporario
                         
                         
                         assunto = f"Boleto {empresa} - {dados['date']} - {dados['empreendimento']} - {dados['bloco']} - Unidade {dados['unidade']}"
@@ -556,30 +583,23 @@ class Processos:
                         msg = utils.jsonFile.read_qualquer_arquivo(os.path.join(self.mensagem_html_path, f'{empresa.lower()}.html'))
                         #msg = utils.jsonFile.read_qualquer_arquivo(os.path.join(self.mensagem_html_path, f'teste.html'))
                         
-                        msg = msg.replace("{{teste}}", f'<span style="text-decoration: underline">este é um teste de envio de e-mail e deveria ser entregue ao {email}</span>') # <------------------- campo para teste deixar limpo para produção
+                        if testes:
+                            msg = msg.replace("{{teste}}", f'<span style="text-decoration: underline">este é um teste de envio de e-mail e deveria ser entregue ao {email}</span>') # <------------------- campo para teste deixar limpo para produção
+                        else:
+                            msg = msg.replace("{{teste}}", "")
+                            
                         msg = msg.replace("{{nome_empreendimento}}", dados['empreendimento'])
                         msg = msg.replace("{{bloco}}", dados['bloco'])
                         msg = msg.replace("{{unidade}}", f"Unidade {dados['unidade']}")
                         msg = msg.replace("{{nome_cliente}}", dados['nome'].title())
                         msg = msg.replace("{{data}}", dados['date'])
                         
-                        
-                        
-                        # msg = f'<p style="text-decoration: underline;">  --->  Este esmail deveria ser entregue ao {email}  <---  </p>'
-                        # msg += _msg
-                        # msg = msg.replace("{{nome_cliente}}", dados['nome'].title())\
-                        #         .replace("{{data}}", dados['date'])\
-                        #         .replace("{{nome_empreendimento}}", dados['empreendimento'])\
-                        #         .replace("{{empresa}}", empresa.title())\
-                        #         .replace("{{relacionamento_email}}", f"relacionamento@{empresa.lower()}.com.br")\
-                        #         .replace("{{site}}", f"www.{empresa.lower()}.com.br")\
-                        #         .replace("{{assinatura}}", assinatura)
-                        
-                        #import pdb; pdb.set_trace()
-                        
+                        if testes:
+                            destino='thays.freitas@patrimar.com.br'
+                        else:
+                            destino = email                  
                         send_email.mensagem(
-                            #Destino=email, # <------------------- alterar email para produção
-                            Destino='renan.oliveira@patrimar.com.br',
+                            Destino=destino,
                             Assunto=assunto,
                             Corpo_email=msg,
                             _type='html'
@@ -597,7 +617,12 @@ class Processos:
                         send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'novolar_vertical.png'), tag='novolar_vertical')
                         send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'bt_portal_{empresa.lower()}.png'), tag='botao')
                         
-                        send_email.send(msg_envio=assunto)    
+                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', 'icons', f'email.png'), tag='icon-email')
+                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', 'icons', f'tel.png'), tag='icon-tel')
+                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', 'icons', f'whatsapp.png'), tag='icon-whatsapp')
+                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', 'icons', f'internet.png'), tag='icon-internet')
+                        
+                        send_email.send(msg_envio=" "*4+assunto)    
                         
                         emails_to_delete = utils.jsonFile.read(self.emails_to_delete_path)
                         emails_to_delete.append(email)
@@ -605,10 +630,11 @@ class Processos:
                     except Exception as err:
                         Logs().register(status='Error', description=str(err), exception=traceback.format_exc())
                         print(type(err), err)
-                        
-                    if count >= 5:
-                        break
-                    count += 1
+                    
+                    if testes: 
+                        if count >= 5: #type:ignore temporario
+                            break # temporario
+                        count += 1 #type:ignore temporario
                 
                 for value in utils.jsonFile.read(self.emails_to_delete_path):
                     emails_to_send.pop(value)
@@ -616,9 +642,9 @@ class Processos:
                 utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
                 
                 emails_to_send:dict = utils.jsonFile.read(self.emails_to_send_path)
-                print(P(f"    {len(emails_to_send)} e-mails restantes!", color='cyan'))
 
-                print(P("    E-mails enviados com sucesso!", color='green'))      
+                if not testes:
+                    self.informativo.sucess(f"E-mails enviados com sucesso!\ncom '{len(emails_to_send)}' e-mails restantes!")
                 self.etapa.save(etapa)
                 if finalizar:
                     print(P("Finalizando aplicação...", color='magenta'))
@@ -642,6 +668,7 @@ class Processos:
             if (not self.etapa.executed_month(etapa) or etapa == ""):
                 self.etapa.save(etapa)
                 print(P("Processo de Faturamento Finalizado!", color='green'))
+                self.informativo.sucess("Processo de Faturamento Finalizado!\n ate o próximo mês!")
                 sys.exit()
             else:
                 print(P(f"    {etapa} já foi executada este mês!", color='cyan'))

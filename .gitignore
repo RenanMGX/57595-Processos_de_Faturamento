@@ -1,6 +1,7 @@
 #costumized
 *teste_execute.py
 *teste.py
+*teste2.py
 *.ipynb
 *config.init
 *Logs
@@ -10,6 +11,7 @@
 *planilha_base
 *#material
 *relatorios
+*Thumbs.db
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,venv,visualstudiocode

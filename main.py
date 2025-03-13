@@ -5,14 +5,13 @@ from Entities.sap import SAP
 from Entities.dependencies.functions import P
 from Entities.dependencies.logs import Logs, traceback
 from Entities import utils
+from Entities.dependencies.arguments import Arguments
 
-if __name__ == "__main__":
-    try:
-        date = datetime.now()
-        
+class Execute:
+    @staticmethod
+    def start(date = datetime.now()):
         #processos = Processos(date, pasta=r'W:\BOLETOS_SEGUNDA_VIA_HML')
         processos = Processos(utils.primeiro_dia_proximo_mes(date))
-
         
         print(P('  ---> Iniciando Automação <---  \n', color='green'))
         
@@ -56,12 +55,9 @@ if __name__ == "__main__":
         processos.finalizar(etapa='12.finalizar', ultima_etapa='11.enviar_emails')
         
         
-    except Exception as err:
-        Logs().register(status='Error', description=str(err), exception=traceback.format_exc())
-        print(traceback.format_exc())
-    
-    # sap = SAP()
-    # sap.gerar_boletos_no_sap(date)
-    # sap.fechar_sap()
-    
+
+if __name__ == "__main__":
+    Arguments({
+        'start': Execute.start
+    })
     
