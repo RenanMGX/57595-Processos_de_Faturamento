@@ -13,6 +13,9 @@ default:Dict[str, Dict[str,object]] = {
         'email': 'Email-Boletos',
         'email_debug': 'Microsoft-RPA'
     },
+    'lista_emails':{
+        'emailToSendLogs': 'contasareceber@patrimar.com.br'
+    },    
     'path': {
         "download" : f"C:\\Users\\{getuser()}\\Downloads",
         "planilhaClientes": f"C:\\Users\\{getuser()}\\PATRIMAR ENGENHARIA S A\\RPA - Documentos\\RPA - Dados\\Relatorio_Imobme_Financeiro\\ClientesContratos.json"

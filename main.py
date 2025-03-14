@@ -54,10 +54,12 @@ class Execute:
         # Etapa 12 - Final
         processos.finalizar(etapa='12.finalizar', ultima_etapa='11.enviar_emails')
         
-        
+def teste():
+    print("testado")       
 
 if __name__ == "__main__":
     Arguments({
-        'start': Execute.start
+        'start': Execute.start,
+        'teste': teste
     })
     

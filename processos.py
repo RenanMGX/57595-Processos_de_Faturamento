@@ -46,8 +46,8 @@ class Processos:
         self.emails_to_send_path:str = os.path.join(os.getcwd(), 'emails_to_send.json')
         self.emails_to_delete_path:str = os.path.join(os.getcwd(), 'emails_to_delete.json')
         self.mensagem_html_path:str = os.path.join(os.getcwd(), 'Entities', 'layout_email')
-        self.assinatura_path:str = r"\\server011\NETLOGON\ASSINATURA"
-        self.email_to_send_logs:str = "contasareceber@patrimar.com.br"
+        #self.assinatura_path:str = r"\\server011\NETLOGON\ASSINATURA"
+        self.email_to_send_logs:str = Config()['lista_emails']['emailToSendLogs']
         
         self.informativo = Informativo(email=self.email_to_send_logs, assunto="Informativo da Automação do Processo de Faturamento")
         
@@ -399,7 +399,7 @@ class Processos:
             print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
             
-    def criptografar_boletos(self, date: datetime | None=None, quant_nucleos:int=5):
+    def criptografar_boletos(self, date: datetime | None=None, quant_nucleos:int=int(multiprocessing.cpu_count()/1.2)):
         """
         Realiza a criptografia dos PDFs de boletos armazenados na pasta definida.
 
@@ -419,6 +419,9 @@ class Processos:
         if date is None:
             date = self.date
 
+        if quant_nucleos <= 0:
+            quant_nucleos = 1
+        
         print(P("Executando criptografia de boletos", color='yellow'))
 
         lista_files = []
@@ -443,7 +446,7 @@ class Processos:
         print(P(f"Quantidade de arquivos: {len(lista_files)}", color='cyan'))
         
                     
-        lista_arquivos_para_multiprocess = utils.split_list(lista_files, 5)
+        lista_arquivos_para_multiprocess = utils.split_list(lista_files, quant_nucleos)
         lista_multiprocess:List[multiprocessing.Process] = []
         for lista in lista_arquivos_para_multiprocess:
             lista_multiprocess.append(multiprocessing.Process(target=utils.cripto, args=(lista,)))
@@ -593,12 +596,12 @@ class Processos:
                         
                         assunto = f"Boleto {empresa} - {dados['date']} - {dados['empreendimento']} - {dados['bloco']} - Unidade {dados['unidade']}"
                         
-                        assinatura = ""
-                        if os.path.exists(self.assinatura_path):
-                            assinatura = [os.path.join(self.assinatura_path, file) for file in os.listdir(self.assinatura_path)][0]
+                        # assinatura = ""
+                        # if os.path.exists(self.assinatura_path):
+                        #     assinatura = [os.path.join(self.assinatura_path, file) for file in os.listdir(self.assinatura_path)][0]
                         
-                        if assinatura:
-                            assinatura = f'<img src="{assinatura}" alt="assinatura" style="height:1.947in;width:4.583in">'
+                        # if assinatura:
+                        #     assinatura = f'<img src="{assinatura}" alt="assinatura" style="height:1.947in;width:4.583in">'
                         
                         msg = utils.jsonFile.read_qualquer_arquivo(os.path.join(self.mensagem_html_path, f'{empresa.lower()}.html'))
                         #msg = utils.jsonFile.read_qualquer_arquivo(os.path.join(self.mensagem_html_path, f'teste.html'))
@@ -615,8 +618,8 @@ class Processos:
                         msg = msg.replace("{{data}}", dados['date'])
                         
                         if testes:
-                            destino=['thays.freitas@patrimar.com.br', 'renan.oliveira@patrimar.com.br']
-                            cc = "kleryson.lara@patrimar.com.br"
+                            destino=['kleryson.lara@patrimar.com.br', 'renan.oliveira@patrimar.com.br']
+                            cc = "thays.freitas@patrimar.com.br"
                         else:
                             destino = email 
                             cc = ""    
