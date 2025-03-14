@@ -55,7 +55,8 @@ class Execute:
         processos.finalizar(etapa='12.finalizar', ultima_etapa='11.enviar_emails')
         
 def teste():
-    print("testado")       
+    print("testado")   
+    input()    
 
 if __name__ == "__main__":
     Arguments({
