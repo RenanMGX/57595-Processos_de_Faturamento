@@ -125,8 +125,8 @@ class Credential:
         return self.criar_cifra(text, -key)
         
 if __name__ == "__main__":
-    #crd = Credential('IMOBME_QAS')
+    crd = Credential('IMOBME_QAS')
     #crd = Credential('IMOBME_PRD')
-    crd = Credential('Email-Boletos')
+    #crd = Credential('Email-Boletos')
     
     print(crd.load())

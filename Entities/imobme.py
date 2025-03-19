@@ -31,7 +31,7 @@ class Imobme(Nav):
             tag_html = self.find_element(By.TAG_NAME, 'html').text
             if "Imobme - Autenticação" in tag_html:
                 print(P("Efetuando login...", color='yellow'))
-                sleep(1)
+                sleep(3)
                 self.find_element(By.ID, 'login').send_keys(self.__crd['login'])
                 t_password = self.find_element(By.ID, 'password')
                 t_password.send_keys(self.__crd['password'])
@@ -39,6 +39,7 @@ class Imobme(Nav):
                 print(P("Aguardando resposta...", color='yellow'))
                 t_password.send_keys(Keys.ENTER)                
                 
+                sleep(2)
                 tag_html = self.find_element(By.TAG_NAME, 'html').text
                 if "\nLogin não encontrado.\n" in self.find_element(By.TAG_NAME, 'html').text:
                     print(P("Login não encontrado!", color='red'))
@@ -74,6 +75,8 @@ class Imobme(Nav):
         print(P(f"    Navegador DownloadPath {download_path=}   ", color='yellow'))
         super().__init__(download_path=download_path, save_user=True)
         
+        self.__load_page('Autenticacao/Login')
+        sleep(3)
         self.__load_page('Autenticacao/Login')
         
     
@@ -124,7 +127,8 @@ class Imobme(Nav):
                     t_ul = self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[4]/div[1]/div/ul')
                     for element in [element for element in t_ul.find_elements(By.TAG_NAME, 'li') if (element.text != '') and (element.text != 'Todos')]:
                         if element.text in empreendimento:
-                            element.click()
+                            element.find_element(By.TAG_NAME, 'input').click()
+                            #element.click()
                     
                     
                     #elemento_empreendimento['element'].click() #type: ignore
@@ -175,6 +179,88 @@ class Imobme(Nav):
                         #return True
                         
                     self.__esperar_carregamento()
+                    break
+                except Exception as err:
+                    #print(P(f"Erro: {err}", color='red'))
+                    if _ == 4:
+                        print(P(f"Erro: {err}", color='red'))
+                        raise exceptions.CobrancaError(f"Erro: {err}")
+                    continue
+                    
+        
+        print(P("Faturamentos realizados com sucesso!", color='green'))
+        return True
+    
+    @verify_login  
+    def abrir_periodo(self, date: datetime, *, tamanho_mini_lista=10) -> bool:
+        self.__load_page('Periodo/Novo')
+        print(P("Aguardando carregar página...                           ", color='yellow'))
+        
+        self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[3]/div[1]/div/button').click()
+        t_ul = self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[3]/div[1]/div/ul')
+        lista_empreendimentos:List[str] = [element.text for element in t_ul.find_elements(By.TAG_NAME, 'li') if (element.text != '') and (element.text != 'Todos')]
+        
+        empreendimentos:List[List[str]] = utils.criar_listas_de_mini_listas(lista=lista_empreendimentos, tamanho_mini_lista=tamanho_mini_lista)
+        
+        self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[3]/div[1]/div/button').click()
+        
+        cont = 0   
+        for empreendimento in empreendimentos:
+            cont += 1
+            for _ in range(5):
+                try:
+                    self.__load_page('Periodo/Novo')
+                    self.__esperar_carregamento()
+                    self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[3]/div[1]/div/button').click()
+                    
+                    t_ul = self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[3]/div[1]/div/ul')
+                    for element in [element for element in t_ul.find_elements(By.TAG_NAME, 'li') if (element.text != '') and (element.text != 'Todos')]:
+                        if element.text in empreendimento:
+                            element.find_element(By.TAG_NAME, 'input').click()
+                            #element.click()
+
+                    sleep(1)
+                    self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[3]/div[1]/div/button').click()
+                    
+                    print(P(f"[{cont}/{len(empreendimentos)}] | Empreendimentos Selecionado...                  ", color='yellow'), end='\r')
+                    
+                    self.__esperar_carregamento(initial_wait=0.2)        
+                    self._find_element(By.ID, 'Mes_chzn').click()
+                    t_buscar_mes = self._find_element(By.XPATH, '//*[@id="Mes_chzn"]/div/div/input')
+                    t_buscar_mes.clear()
+                    t_buscar_mes.send_keys(date.strftime('%B').capitalize())
+                    t_buscar_mes.send_keys(Keys.ENTER)
+                    print(P(f"[{cont}/{len(empreendimentos)}] | Mês Selecionado...                 ", color='yellow'), end='\r')
+                    
+                    self.__esperar_carregamento(initial_wait=0.2)
+                    t_ano = self._find_element(By.ID, 'ano')
+                    t_ano.clear()
+                    t_ano.send_keys(date.strftime('%Y'))
+                    print(P(f"[{cont}/{len(empreendimentos)}] | Ano Selecionado...                   ", color='yellow'), end='\r')
+                    
+                    self.__esperar_carregamento(initial_wait=0.2)
+                    self._find_element(By.ID, 'AddNovo').click()
+                    print(P(f"[{cont}/{len(empreendimentos)}] | Procurando Faturamentos...               ", color='yellow'), end='\r')
+                    
+                    self.__esperar_carregamento(initial_wait=0.2)
+                    #self._find_element(By.ID, 'Salvar').click()
+                    print(P(f"[{cont}/{len(empreendimentos)}] | Executando Faturamentos...                  ", color='yellow'), end='\r')
+                    
+                    print(end='\r')
+                    
+                    self.__esperar_carregamento(initial_wait=5)
+                    if (t_error:=self._find_element(By.ID, 'divMsgError').text):
+                        print(P(t_error, color='red'))
+                        raise exceptions.CobrancaError(t_error)
+
+                    # self.__esperar_carregamento()
+                    # if (t_alerta:=self._find_element(By.ID, 'divAlert').text):
+                    #     print(P(f"[{cont}/{len(empreendimentos)}] | {empreendimento} - {t_alerta}", color='cyan'))
+                    #     #return True
+                    
+                    print(P(f"[{cont}/{len(empreendimentos)}] | {empreendimento} - Periodo Aberto!", color='green'))   
+                    self.__esperar_carregamento()
+                    import pdb;pdb.set_trace()
                     break
                 except Exception as err:
                     #print(P(f"Erro: {err}", color='red'))

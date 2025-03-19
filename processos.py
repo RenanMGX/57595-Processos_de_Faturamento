@@ -90,6 +90,9 @@ class Processos:
         if (not self.etapa.executed_month(etapa) or etapa == ""):
             bot = Imobme()
             if bot.verificar_indices(date=date, lista_indices=lista_indices):
+                if not bot.abrir_periodo(date, tamanho_mini_lista=12):
+                    self.informativo.error("Erro ao abrir o período no Imobme!")
+                    return False
                 if bot.cobranca(date, tamanho_mini_lista=12):
                     self.etapa.save(etapa)
                     self.informativo.sucess("Imobme Cobrança global executada com sucesso!")
