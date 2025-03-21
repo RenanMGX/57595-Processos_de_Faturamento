@@ -4,10 +4,11 @@ from Entities.emails import Email
 from typing import Literal
 import os
 
-class Informativo:
-    def __init__(self, *, email:str="", assunto:str="") -> None:
+class  Informativo:
+    def __init__(self, *, email:str="", cc:str="", assunto:str="") -> None:
         self.email = email
         self.assunto = assunto
+        self.cc = cc
         
     def sucess(
         self,
@@ -28,6 +29,7 @@ class Informativo:
                 mandar_email.mensagem(
                         Destino=self.email,
                         Assunto=self.assunto,
+                        CC= self.cc if self.cc else "",
                         Corpo_email=msg,
                         _type='plain'
                     )

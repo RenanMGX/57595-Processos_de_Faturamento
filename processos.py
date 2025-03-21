@@ -49,7 +49,7 @@ class Processos:
         #self.assinatura_path:str = r"\\server011\NETLOGON\ASSINATURA"
         self.email_to_send_logs:str = Config()['lista_emails']['emailToSendLogs']
         
-        self.informativo = Informativo(email=self.email_to_send_logs, assunto="Informativo da Automação do Processo de Faturamento")
+        self.informativo = Informativo(email=self.email_to_send_logs, cc="renan.oliveira@patrimar.com.br", assunto="Informativo da Automação do Processo de Faturamento")
         
         if not os.path.exists(self.relatorios_path):
             os.makedirs(self.relatorios_path)
