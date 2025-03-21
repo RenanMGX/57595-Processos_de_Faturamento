@@ -243,7 +243,7 @@ class Imobme(Nav):
                     print(P(f"[{cont}/{len(empreendimentos)}] | Procurando Faturamentos...               ", color='yellow'), end='\r')
                     
                     self.__esperar_carregamento(initial_wait=0.2)
-                    #self._find_element(By.ID, 'Salvar').click()
+                    self._find_element(By.ID, 'Salvar').click()
                     print(P(f"[{cont}/{len(empreendimentos)}] | Executando Faturamentos...                  ", color='yellow'), end='\r')
                     
                     print(end='\r')
@@ -260,7 +260,7 @@ class Imobme(Nav):
                     
                     print(P(f"[{cont}/{len(empreendimentos)}] | {empreendimento} - Periodo Aberto!", color='green'))   
                     self.__esperar_carregamento()
-                    import pdb;pdb.set_trace()
+                    #import pdb;pdb.set_trace()
                     break
                 except Exception as err:
                     #print(P(f"Erro: {err}", color='red'))
