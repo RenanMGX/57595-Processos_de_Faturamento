@@ -28,6 +28,9 @@ def criar_listas_de_mini_listas(*, lista:list, tamanho_mini_lista:int) -> List[l
 def primeiro_dia_ultimo_mes(date:datetime) -> datetime:
     return (date - relativedelta(months=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
+def primeiro_dia_penultimo_mes(date:datetime) -> datetime:
+    return (date - relativedelta(months=2)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
 def primeiro_dia_proximo_mes(date:datetime) -> datetime:
     return (date + relativedelta(months=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
