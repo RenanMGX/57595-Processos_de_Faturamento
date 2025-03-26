@@ -60,7 +60,15 @@ class Processos:
                 for file in os.listdir(self.relatorios_path):
                     os.unlink(os.path.join(self.relatorios_path, file))
             print(P("Pasta de relatórios limpa!", color='cyan'))
-
+            
+    def _gastar_um_dia(self, *, etapa:str, ultima_etapa:str=""):
+        if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if (not self.etapa.executed_month(etapa) or etapa == ""):
+                self.etapa.save(etapa)
+                print(P(f"Executando etapa 'gastar_um_dia'", color='yellow'))
+                sys.exit()
+    
+    
     def imobme_cobranca_global(self, date: datetime | None = None, *, finalizar: bool, etapa:str) -> bool:
         """
         Executa a cobrança global no sistema Imobme para o mês corrente.
@@ -402,7 +410,13 @@ class Processos:
             print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
             sys.exit()
             
-    def criptografar_boletos(self, date: datetime | None=None, quant_nucleos:int=int(multiprocessing.cpu_count()/1.2)):
+    def criptografar_boletos(self, *, 
+                            date: datetime | None=None,
+                            quant_nucleos:int=int(multiprocessing.cpu_count()/1.2),
+                            finalizar: bool=False,
+                            etapa:str,
+                            ultima_etapa:str="",                             
+                            ):
         """
         Realiza a criptografia dos PDFs de boletos armazenados na pasta definida.
 
@@ -426,42 +440,50 @@ class Processos:
             quant_nucleos = 1
         
         print(P("Executando criptografia de boletos", color='yellow'))
-
-        lista_files = []
-        for file in os.listdir(self.pasta):
-            file_path:str = os.path.join(self.pasta, file)
-            if not os.path.isfile(file_path):
-                continue
-            
-            file_date = os.path.basename(file_path)
-            if not file_date.lower().endswith('.pdf'):
-                continue
-            
-            try:
-                file_date = file_date.split('-')[3]
-            except:
-                print(os.path.basename(file_path))
-                continue
-            if file_date != str(date.month).zfill(2):
-                continue
-            lista_files.append(file_path)
-            
-        print(P(f"Quantidade de arquivos: {len(lista_files)}", color='cyan'))
         
+        if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if (not self.etapa.executed_month(etapa) or etapa == ""):
+
+                lista_files = []
+                for file in os.listdir(self.pasta):
+                    file_path:str = os.path.join(self.pasta, file)
+                    if not os.path.isfile(file_path):
+                        continue
                     
-        lista_arquivos_para_multiprocess = utils.split_list(lista_files, quant_nucleos)
-        lista_multiprocess:List[multiprocessing.Process] = []
-        for lista in lista_arquivos_para_multiprocess:
-            lista_multiprocess.append(multiprocessing.Process(target=utils.cripto, args=(lista,)))
-            
-        #import pdb; pdb.set_trace()
-        for processo in lista_multiprocess:
-            processo.start()
-            
-        for processo in lista_multiprocess:
-            processo.join()
+                    file_date = os.path.basename(file_path)
+                    if not file_date.lower().endswith('.pdf'):
+                        continue
+                    
+                    try:
+                        file_date = file_date.split('-')[3]
+                    except:
+                        print(os.path.basename(file_path))
+                        continue
+                    if file_date != str(date.month).zfill(2):
+                        continue
+                    lista_files.append(file_path)
+                    
+                print(P(f"Quantidade de arquivos: {len(lista_files)}", color='cyan'))
                 
-        print(P("    Criptografia de boletos executada com sucesso!", color='green'))
+                            
+                lista_arquivos_para_multiprocess = utils.split_list(lista_files, quant_nucleos)
+                lista_multiprocess:List[multiprocessing.Process] = []
+                for lista in lista_arquivos_para_multiprocess:
+                    lista_multiprocess.append(multiprocessing.Process(target=utils.cripto, args=(lista,)))
+                    
+                #import pdb; pdb.set_trace()
+                for processo in lista_multiprocess:
+                    processo.start()
+                    
+                for processo in lista_multiprocess:
+                    processo.join()
+                        
+                print(P("    Criptografia de boletos executada com sucesso!", color='green'))
+            else:
+                print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
+        else:
+            print(P(f"    {ultima_etapa} não foi executada este mês!", color='magenta'))
+            
         
     def preparar_lista_envio_email(self, *,
                       date: datetime | None = None,
