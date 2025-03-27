@@ -78,6 +78,7 @@ class Imobme(Nav):
         self.__load_page('Autenticacao/Login')
         sleep(3)
         self.__load_page('Autenticacao/Login')
+        self.maximize_window()
         
     
     def __load_page(self, endpoint:str):
@@ -410,7 +411,7 @@ class Imobme(Nav):
         self._find_element(By.XPATH, '//*[@id="Header"]/div[1]/img[1]').click() #<-------------------
         
         #import pdb; pdb.set_trace()
-        
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/button').location_once_scrolled_into_view
         self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/button').click()
         self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/ul/li[4]/a/label/input').click()
         self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/ul/li[7]/a/label/input').click()
