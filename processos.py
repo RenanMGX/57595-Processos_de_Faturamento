@@ -552,13 +552,14 @@ class Processos:
                                            anexo=[
                                                file_path
                                            ])
+                    #print(file_path)
                     os.unlink(file_path)
                     
                 utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
                 utils.jsonFile.write(self.emails_to_delete_path, [])
                 
                 self.etapa.save(etapa)
-                self.informativo.sucess("Preparação de lista de envio de e-mails executada com sucesso!")
+                #self.informativo.sucess("Preparação de lista de envio de e-mails executada com sucesso!")
                 if finalizar:
                     print(P("Finalizando aplicação...", color='magenta'))
                     sys.exit()

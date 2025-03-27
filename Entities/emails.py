@@ -3,6 +3,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email.mime.image import MIMEImage
+from email.mime.application import MIMEApplication
 from email import encoders
 from Entities.dependencies.config import Config
 from Entities.dependencies.credenciais import Credential
@@ -51,11 +52,13 @@ class Email:
             
             filename = os.path.basename(Attachment_path)
             with open(Attachment_path, 'rb') as _file:
-                part = MIMEBase('application', 'octet-stream')
-                part.set_payload(_file.read())
-                encoders.encode_base64(part)
-                part.add_header('Content-Disposition', f'attachment; filename= {filename}')
-                    
+                part = MIMEApplication(_file.read(), Name=filename)
+                # part = MIMEBase('application', 'octet-stream')
+                # part.set_payload(_file.read())
+                # encoders.encode_base64(part)
+                # part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+            
+            part['Content-Disposition'] = f'attachment; filename="{filename}"'        
             self.__msg.attach(part)
             
             return self

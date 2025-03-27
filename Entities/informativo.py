@@ -57,6 +57,7 @@ class  Informativo:
                 mandar_email.mensagem(
                         Destino=self.email,
                         Assunto=self.assunto,
+                        CC= self.cc if self.cc else "",
                         Corpo_email=msg,
                         _type='plain'
                     )
