@@ -399,7 +399,7 @@ class Imobme(Nav):
             if _ == 4:
                 raise exceptions.RelatorioError("Erro ao selecionar relatório!")
         
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         self._find_element(By.XPATH, '//*[@id="DataInicio"]').send_keys(initial_date.strftime("%d%m%Y")) # escreve a data de inicio padrao 01/01/2015
         self._find_element(By.XPATH, '//*[@id="Header"]/div[1]/img[1]').click() #<-------------------
         self._find_element(By.XPATH, '//*[@id="DataFim"]').send_keys(final_date.strftime("%d%m%Y")) # escreve a data de fim padrao com a data atual mais 25 anos
