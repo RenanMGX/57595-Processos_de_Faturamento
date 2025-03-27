@@ -391,7 +391,7 @@ class Imobme(Nav):
         for _ in range(5):
             try:
                 self._find_element(By.ID, 'Relatorios_chzn').click() # clique em selecionar Relatorios
-                self._find_element(By.XPATH, '//*[@id="Relatorios_chzn_o_9"]').click() # clique em IMOBME - Previsão de Receita
+                self._find_element(By.XPATH, '//*[@id="Relatorios_chzn_o_10"]').click() # clique em IMOBME - Previsão de Receita
                 break
             except:
                 sleep(1)
