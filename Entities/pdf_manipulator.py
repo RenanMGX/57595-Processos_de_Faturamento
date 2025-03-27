@@ -32,7 +32,7 @@ class PDFManipulator:
     
     def __extract_cpf_cnpj_from_caixa(self) -> Union[str, None]:
         pdf_cnpj = None
-        if (pagador:=re.search(r'Pagador:\n\n[A-z ]+[-] CNPJ/CPF: [\d./-]+', self.__data)):
+        if (pagador:=re.search(r'Pagador:\n\n[A-Za-zÀ-ÖØ-öø-ÿ ]+[-] CNPJ/CPF: [\d./-]+', self.__data)):
             pagador = pagador.group()
             if (dados:=re.search(r'(?<=CNPJ/CPF: )[\d./-]+', pagador)):
                 pdf_cnpj = dados.group()
@@ -44,7 +44,7 @@ class PDFManipulator:
     
     def __extract_cpf_cnpj_from_safra(self) -> Union[str, None]:
         pdf_cnpj = None
-        if (pagador:=re.search(r'Pagador\n[A-z ]+CNPJ/CPF: [\d./-]+', self.__data)):
+        if (pagador:=re.search(r'Pagador\n[A-Za-zÀ-ÖØ-öø-ÿ ]+CNPJ/CPF: [\d./-]+', self.__data)):
             pagador = pagador.group()
             if (dados:=re.search(r'(?<=CNPJ/CPF: )[\d./-]+', pagador)):
                 pdf_cnpj = dados.group()

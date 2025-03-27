@@ -127,7 +127,7 @@ class Credential:
 if __name__ == "__main__":
     #crd = Credential('IMOBME_QAS')
     #crd = Credential('IMOBME_PRD')
-    #crd = Credential('Email-Boletos')
-    crd = Credential('SAP_PRD')
+    crd = Credential('Email-Boletos')
+    #crd = Credential('SAP_PRD')
     
     print(crd.load())

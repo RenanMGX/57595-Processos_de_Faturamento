@@ -464,7 +464,7 @@ class Processos:
                     lista_files.append(file_path)
                     
                 print(P(f"Quantidade de arquivos: {len(lista_files)}", color='cyan'))
-                
+
                             
                 lista_arquivos_para_multiprocess = utils.split_list(lista_files, quant_nucleos)
                 lista_multiprocess:List[multiprocessing.Process] = []
