@@ -479,6 +479,12 @@ class Processos:
                     processo.join()
                         
                 print(P("    Criptografia de boletos executada com sucesso!", color='green'))
+                self.etapa.save(etapa)
+                self.informativo.sucess('Criptografia de boletos executada com sucesso!')
+                if finalizar:
+                    print(P("Finalizando aplicação...", color='magenta'))
+                    sys.exit()
+                return True
             else:
                 print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         else:
