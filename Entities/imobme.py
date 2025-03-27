@@ -398,7 +398,8 @@ class Imobme(Nav):
                 sleep(1)
             if _ == 4:
                 raise exceptions.RelatorioError("Erro ao selecionar relatório!")
-                
+        
+        import pdb; pdb.set_trace()
         self._find_element(By.XPATH, '//*[@id="DataInicio"]').send_keys(initial_date.strftime("%d%m%Y")) # escreve a data de inicio padrao 01/01/2015
         self._find_element(By.XPATH, '//*[@id="Header"]/div[1]/img[1]').click() #<-------------------
         self._find_element(By.XPATH, '//*[@id="DataFim"]').send_keys(final_date.strftime("%d%m%Y")) # escreve a data de fim padrao com a data atual mais 25 anos
@@ -411,7 +412,7 @@ class Imobme(Nav):
         self._find_element(By.XPATH, '//*[@id="Header"]/div[1]/img[1]').click() #<-------------------
         
         #import pdb; pdb.set_trace()
-        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/button').location_once_scrolled_into_view
+        self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[1]/div/h4').location_once_scrolled_into_view
         self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/button').click()
         self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/ul/li[4]/a/label/input').click()
         self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/ul/li[7]/a/label/input').click()
@@ -419,6 +420,8 @@ class Imobme(Nav):
         self._find_element(By.XPATH, '//*[@id="parametrosReport"]/div[4]/div/div[2]/div/button').click()
         
         self._find_element(By.XPATH, '//*[@id="GerarRelatorio"]').click() # clica em gerar relatorio
+        
+        self._find_element(By.XPATH, '//*[@id="parametroAgendamento"]/div[1]/div/h4').location_once_scrolled_into_view
         
         relatories_id:list = [self._find_element(By.XPATH, '//*[@id="result-table"]/tbody/tr[1]/td[1]').text]
         
