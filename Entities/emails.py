@@ -11,6 +11,9 @@ from Entities.dependencies.functions import P
 from typing import Literal
 import os
 import re
+import utils
+from multiprocessing import Lock
+import traceback
 
 
 class Email:
@@ -109,7 +112,84 @@ class Email:
             print(P("Emai enviado", color='green'))
             
         del self.__msg
+
+lock = None
+
+def set_lock(l):
+    global lock
+    lock = l
+
         
+class EmailToClient:
+    @staticmethod
+    def send(_file: tuple, mensagem_html_path:str, emails_to_delete_path:str, email_origin:Literal['email', 'email_debug'] = 'email'):
+        email:str = _file[0]
+        dados:dict = _file[1]
+        
+        for _ in range(5):
+            try:
+                
+                send_email:Email = Email(email_origin)
+                
+                empresa:str = dados['empresa']
+                                
+                empresa = "Patrimar" if empresa.upper().startswith("P") else "Novolar" if empresa.upper().startswith("N") else ""
+                                
+                assunto = f"Boleto {empresa} - {dados['date']} - {dados['empreendimento']} - {dados['bloco']} - Unidade {dados['unidade']}"
+                                
+                                
+                msg = utils.jsonFile.read_qualquer_arquivo(os.path.join(mensagem_html_path, f'{empresa.lower()}.html'))
+
+                msg = msg.replace("{{teste}}", "")
+                                    
+                msg = msg.replace("{{nome_empreendimento}}", dados['empreendimento'])
+                msg = msg.replace("{{bloco}}", dados['bloco'])
+                msg = msg.replace("{{unidade}}", f"Unidade {dados['unidade']}")
+                msg = msg.replace("{{nome_cliente}}", dados['nome'].title())
+                msg = msg.replace("{{data}}", dados['date'])
+                                                            
+                                            
+                send_email.mensagem(
+                    Destino=email,
+                    #Destino='renan.oliveira@patrimar.com.br',
+                    Assunto=assunto,
+                    CC = "",
+                    Corpo_email=msg,
+                    _type='html'
+                )
+                                
+                for file in dados['files']:
+                    send_email.Anexo(
+                        Attachment_path=file
+                    )
+                                
+                                
+                send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', f'emp_{empresa.lower()}.png'), tag="emp_header")  
+                send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', f'logo_{empresa.lower()}.png'), tag="logo_header")
+                send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', f'patrimar_vertical.png'), tag='patrimar_vertical')
+                send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', f'novolar_vertical.png'), tag='novolar_vertical')
+                send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', f'bt_portal_{empresa.lower()}.png'), tag='botao')
+                                
+                send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', 'icons', f'email.png'), tag='icon-email')
+                send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', 'icons', f'tel.png'), tag='icon-tel')
+                send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', 'icons', f'whatsapp.png'), tag='icon-whatsapp')
+                send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', 'icons', f'internet.png'), tag='icon-internet')
+                                
+                send_email.send(msg_envio=f"    Email enviado para {email} - assunto: {assunto}")    
+                
+                with lock: #type: ignore
+                    emails_to_delete:list = utils.jsonFile.read(emails_to_delete_path)
+                    emails_to_delete.append(email)
+                    utils.jsonFile.write(emails_to_delete_path, emails_to_delete)
+                return
+            except smtplib.SMTPDataError:
+                print(P(f"    Erro ao enviar email para {email} tentando novamente!", color='yellow'))
+                continue
+            except Exception as err:
+                print(P(f"    Erro ao enviar email para {email} - {type(err)}", color='red'))
+                return
+        
+        print(P(f"    Erro ao enviar email para {email} - Timeout", color='red'))
         
 if __name__ == "__main__":
     pass

@@ -6,7 +6,7 @@ from Entities.tratar_dados import TratarDados, pd
 
 from Entities.dependencies.logs import Logs, traceback
 from Entities.dependencies.config import Config
-from Entities.emails import Email
+from Entities.emails import EmailToClient, Email, set_lock
 from typing import List, Dict
 from time import sleep
 from datetime import datetime
@@ -17,7 +17,10 @@ from Entities.informativo import Informativo
 import Entities.utils as utils
 import os
 import sys
-import multiprocessing
+import multiprocessing as mp
+from multiprocessing import Lock
+from functools import partial
+
 
 class Processos:
     @property
@@ -50,6 +53,8 @@ class Processos:
         self.email_to_send_logs:str = Config()['lista_emails']['emailToSendLogs']
         
         self.informativo = Informativo(email=self.email_to_send_logs, cc="renan.oliveira@patrimar.com.br", assunto="Informativo da Automação do Processo de Faturamento")
+        
+        self.periodo_not_open_path:str = os.path.join(os.getcwd(), 'periodo_not_open.json')
         
         if not os.path.exists(self.relatorios_path):
             os.makedirs(self.relatorios_path)
@@ -98,9 +103,15 @@ class Processos:
         if (not self.etapa.executed_month(etapa) or etapa == ""):
             bot = Imobme()
             if bot.verificar_indices(date=utils.primeiro_dia_penultimo_mes(date), lista_indices=lista_indices):
-                if not bot.abrir_periodo(date, tamanho_mini_lista=12):
-                    self.informativo.error("Erro ao abrir o período no Imobme!")
-                    return False
+                utils.jsonFile.write(self.periodo_not_open_path, data=[])
+                bot.abrir_periodo(date, tamanho_mini_lista=1, periodo_not_open_path=self.periodo_not_open_path)
+                periodo_not_open = utils.jsonFile.read(self.periodo_not_open_path)
+                if periodo_not_open:
+                    self.informativo.error(f"Erro ao executar Imobme cobrança global, não foi possivel abrir o periodo contabil do(s) seguinte(s) empreendimento(s):\n- {'\n- '.join(periodo_not_open)}")
+                    #bot.close()
+                    #del bot
+                    #return False
+                    
                 if bot.cobranca(date, tamanho_mini_lista=12):
                     self.etapa.save(etapa)
                     self.informativo.sucess("Imobme Cobrança global executada com sucesso!")
@@ -412,7 +423,7 @@ class Processos:
             
     def criptografar_boletos(self, *, 
                             date: datetime | None=None,
-                            quant_nucleos:int=int(multiprocessing.cpu_count()/1.2),
+                            quant_nucleos:int=int(mp.cpu_count()/1.2),
                             finalizar: bool=False,
                             etapa:str,
                             ultima_etapa:str="",                             
@@ -467,9 +478,9 @@ class Processos:
 
                             
                 lista_arquivos_para_multiprocess = utils.split_list(lista_files, quant_nucleos)
-                lista_multiprocess:List[multiprocessing.Process] = []
+                lista_multiprocess:List[mp.Process] = []
                 for lista in lista_arquivos_para_multiprocess:
-                    lista_multiprocess.append(multiprocessing.Process(target=utils.cripto, args=(lista,)))
+                    lista_multiprocess.append(mp.Process(target=utils.cripto, args=(lista,)))
                     
                 #import pdb; pdb.set_trace()
                 for processo in lista_multiprocess:
@@ -577,8 +588,7 @@ class Processos:
     def enviar_emails(self, *,
                       finalizar: bool=False,
                       etapa:str,
-                      ultima_etapa:str="",
-                      testes:bool=False
+                      ultima_etapa:str=""
                       ):
         
         print(P(f"Executando envio de e-mails", color='yellow'))
@@ -597,7 +607,6 @@ class Processos:
                     utils.jsonFile.write(self.emails_to_delete_path, data=[])
                     utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
                 
-                send_email = Email('email')
                 
                 if not emails_to_send:
                     self.etapa.save(etapa)
@@ -607,94 +616,17 @@ class Processos:
                     print(P("    Nenhum e-mail para enviar!", color='cyan'))
                     return True
                 
-                if testes:
-                    count = 1  # temporario
-                    empresa_to_valid = ["patrimar", "novolar"] # temporario
-                for email, dados in emails_to_send.items():
-                    try:
-                        empresa:str = dados['empresa']
-                        if testes:
-                            if not empresa_to_valid: #type:ignore temporario 
-                                break # temporario
-                        
-                        empresa = "Patrimar" if empresa.upper().startswith("P") else "Novolar" if empresa.upper().startswith("N") else ""
-                        
-                        if testes:
-                            if empresa.lower() in empresa_to_valid: #type:ignore temporario
-                               empresa_to_valid.pop(empresa_to_valid.index(empresa.lower())) #type:ignore temporario
-                            else: # temporario
-                                continue # temporario
-                        
-                        
-                        assunto = f"Boleto {empresa} - {dados['date']} - {dados['empreendimento']} - {dados['bloco']} - Unidade {dados['unidade']}"
-                        
-                        # assinatura = ""
-                        # if os.path.exists(self.assinatura_path):
-                        #     assinatura = [os.path.join(self.assinatura_path, file) for file in os.listdir(self.assinatura_path)][0]
-                        
-                        # if assinatura:
-                        #     assinatura = f'<img src="{assinatura}" alt="assinatura" style="height:1.947in;width:4.583in">'
-                        
-                        msg = utils.jsonFile.read_qualquer_arquivo(os.path.join(self.mensagem_html_path, f'{empresa.lower()}.html'))
-                        #msg = utils.jsonFile.read_qualquer_arquivo(os.path.join(self.mensagem_html_path, f'teste.html'))
-                        
-                        if testes:
-                            msg = msg.replace("{{teste}}", f'<span style="text-decoration: underline">este é um teste de envio de e-mail e deveria ser entregue ao {email}</span>') # <------------------- campo para teste deixar limpo para produção
-                        else:
-                            msg = msg.replace("{{teste}}", "")
-                            
-                        msg = msg.replace("{{nome_empreendimento}}", dados['empreendimento'])
-                        msg = msg.replace("{{bloco}}", dados['bloco'])
-                        msg = msg.replace("{{unidade}}", f"Unidade {dados['unidade']}")
-                        msg = msg.replace("{{nome_cliente}}", dados['nome'].title())
-                        msg = msg.replace("{{data}}", dados['date'])
-                        
-                        if testes:
-                            destino=['kleryson.lara@patrimar.com.br', 'renan.oliveira@patrimar.com.br']
-                            cc = "thays.freitas@patrimar.com.br"
-                        else:
-                            destino = email 
-                            cc = ""    
-                            
-                                     
-                        send_email.mensagem(
-                            Destino=destino,
-                            Assunto=assunto,
-                            CC = cc,
-                            Corpo_email=msg,
-                            _type='html'
-                        )
-                        
-                        for file in dados['files']:
-                            send_email.Anexo(
-                                Attachment_path=file
-                            )
-                          
-                        
-                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'emp_{empresa.lower()}.png'), tag="emp_header")  
-                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'logo_{empresa.lower()}.png'), tag="logo_header")
-                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'patrimar_vertical.png'), tag='patrimar_vertical')
-                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'novolar_vertical.png'), tag='novolar_vertical')
-                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', f'bt_portal_{empresa.lower()}.png'), tag='botao')
-                        
-                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', 'icons', f'email.png'), tag='icon-email')
-                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', 'icons', f'tel.png'), tag='icon-tel')
-                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', 'icons', f'whatsapp.png'), tag='icon-whatsapp')
-                        send_email.addImagemCid(Attachment_path=os.path.join(self.mensagem_html_path, 'img', 'icons', f'internet.png'), tag='icon-internet')
-                        
-                        send_email.send(msg_envio=" "*4+assunto)    
-                        
-                        emails_to_delete = utils.jsonFile.read(self.emails_to_delete_path)
-                        emails_to_delete.append(email)
-                        utils.jsonFile.write(self.emails_to_delete_path, emails_to_delete)
-                    except Exception as err:
-                        Logs().register(status='Error', description=str(err), exception=traceback.format_exc())
-                        print(type(err), err)
-                    
-                    if testes: 
-                        if count >= 5: #type:ignore temporario
-                            break # temporario
-                        count += 1 #type:ignore temporario
+                #send_email = Email('email_debug')
+                lock = Lock()
+                emails_to_send_list = list(emails_to_send.items())#[0:30]
+                with mp.Pool(processes=5, initializer=set_lock, initargs=(lock,)) as pool:
+                    f = partial(EmailToClient.send,
+                                mensagem_html_path=self.mensagem_html_path, 
+                                emails_to_delete_path=self.emails_to_delete_path
+                                )
+                    pool.map(f, emails_to_send_list)
+                
+                sleep(2)
                 
                 for value in utils.jsonFile.read(self.emails_to_delete_path):
                     emails_to_send.pop(value)
@@ -703,9 +635,9 @@ class Processos:
                 
                 emails_to_send:dict = utils.jsonFile.read(self.emails_to_send_path)
 
-                if not testes:
-                    self.informativo.sucess(f"E-mails enviados com sucesso!\ncom '{len(emails_to_send)}' e-mails restantes!")
-                self.etapa.save(etapa)
+                self.informativo.sucess(f"E-mails enviados com sucesso!\ncom '{len(emails_to_send)}' e-mails restantes!")
+                if len(emails_to_send) <= 0:
+                    self.etapa.save(etapa)
                 if finalizar:
                     print(P("Finalizando aplicação...", color='magenta'))
                     sys.exit()

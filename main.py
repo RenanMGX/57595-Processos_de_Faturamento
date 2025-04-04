@@ -47,12 +47,9 @@ class Execute:
         
         # Etapa 10
         processos.enviar_emails(finalizar=True, etapa='10.enviar_emails', ultima_etapa='9.preparar_lista_envio_email')
-        
-        # Etapa 11
-        processos.enviar_emails(etapa='11.enviar_emails', ultima_etapa='10.enviar_emails')
-        
-        # Etapa 12 - Final
-        processos.finalizar(etapa='12.finalizar', ultima_etapa='11.enviar_emails')
+                
+        # Etapa 11 - Final
+        processos.finalizar(etapa='11.finalizar', ultima_etapa='10.enviar_emails')
         
 def teste():
     print("testado")   

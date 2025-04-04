@@ -119,7 +119,7 @@ def cripto(pdf_paths:list):
     
 class jsonFile:
     @staticmethod
-    def read(path:str):
+    def read(path:str) :
         if not path.lower().endswith('.json'):
             raise Exception(f"File {path} is not a json file")
         if not os.path.exists(path):

@@ -137,7 +137,6 @@ class Imobme(Nav):
                     #self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[4]/div[1]/div/ul/li[3]/a/label').click() # selecionar primeiro empreendimento
                     self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[4]/div[1]/div/button').click()
                     print(P(f"[{cont}/{len(empreendimentos)}] | Empreendimentos Selecionado...                  ", color='yellow'), end='\r')
-                    
                     self.__esperar_carregamento(initial_wait=0.2)        
                     self._find_element(By.ID, 'Mes_chzn').click()
                     t_buscar_mes = self._find_element(By.XPATH, '//*[@id="Mes_chzn"]/div/div/input')
@@ -193,7 +192,7 @@ class Imobme(Nav):
         return True
     
     @verify_login  
-    def abrir_periodo(self, date: datetime, *, tamanho_mini_lista=10) -> bool:
+    def abrir_periodo(self, date: datetime, *, tamanho_mini_lista=10, periodo_not_open_path:str=os.path.join(os.getcwd(), 'periodo_not_open.json')) -> bool:
         self.__load_page('Periodo/Novo')
         print(P("Aguardando carregar página...                           ", color='yellow'))
         
@@ -205,11 +204,13 @@ class Imobme(Nav):
         
         self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[3]/div[1]/div/button').click()
         
+        empreendimentos = empreendimentos[0:5]
         cont = 0   
         for empreendimento in empreendimentos:
             cont += 1
             for _ in range(5):
                 try:
+                    #import pdb;pdb.set_trace()
                     self.__load_page('Periodo/Novo')
                     self.__esperar_carregamento()
                     self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[3]/div[1]/div/button').click()
@@ -225,9 +226,14 @@ class Imobme(Nav):
                     
                     print(P(f"[{cont}/{len(empreendimentos)}] | Empreendimentos Selecionado...                  ", color='yellow'), end='\r')
                     
-                    self.__esperar_carregamento(initial_wait=0.2)        
-                    self._find_element(By.ID, 'Mes_chzn').click()
-                    t_buscar_mes = self._find_element(By.XPATH, '//*[@id="Mes_chzn"]/div/div/input')
+                    self.__esperar_carregamento(initial_wait=0.2)  
+                    try: 
+                        self._find_element(By.ID, 'Mes_chosen').click()
+                        t_buscar_mes = self._find_element(By.XPATH, '//*[@id="Mes_chosen"]/div/div/input')
+                    except:
+                        self._find_element(By.ID, 'Mes_chzn').click()
+                        t_buscar_mes = self._find_element(By.XPATH, '//*[@id="Mes_chzn"]/div/div/input')
+                        
                     t_buscar_mes.clear()
                     t_buscar_mes.send_keys(date.strftime('%B').capitalize())
                     t_buscar_mes.send_keys(Keys.ENTER)
@@ -250,24 +256,33 @@ class Imobme(Nav):
                     print(end='\r')
                     
                     self.__esperar_carregamento(initial_wait=5)
-                    if (t_error:=self._find_element(By.ID, 'divMsgError').text):
+                    if "Erro: Período já cadastrado para os empreendimento(s)" in (t_error:=self._find_element(By.ID, 'divMsgError').text):
+                        #raise exceptions.CobrancaError(t_error)
+                        print(P(f"[{cont}/{len(empreendimentos)}] | {empreendimento} - {t_error}", color='cyan'))
+                        break                        
+                    elif t_error:
                         print(P(t_error, color='red'))
                         raise exceptions.CobrancaError(t_error)
 
-                    # self.__esperar_carregamento()
-                    # if (t_alerta:=self._find_element(By.ID, 'divAlert').text):
-                    #     print(P(f"[{cont}/{len(empreendimentos)}] | {empreendimento} - {t_alerta}", color='cyan'))
-                    #     #return True
-                    
-                    print(P(f"[{cont}/{len(empreendimentos)}] | {empreendimento} - Periodo Aberto!", color='green'))   
                     self.__esperar_carregamento()
-                    #import pdb;pdb.set_trace()
-                    break
+                    if (t_alerta:=self._find_element(By.ID, 'divAlert').text) == 'Periodo salvo com sucesso.':
+                        print(P(f"[{cont}/{len(empreendimentos)}] | {empreendimento} - {t_alerta}", color='green'))
+                        break
+                    
+
                 except Exception as err:
                     #print(P(f"Erro: {err}", color='red'))
-                    if _ == 4:
+                    if _ >= 4:
                         print(P(f"Erro: {err}", color='red'))
-                        raise exceptions.CobrancaError(f"Erro: {err}")
+                        try:
+                            periodo_not_open:list = utils.jsonFile.read(periodo_not_open_path)
+                        except FileNotFoundError:
+                            periodo_not_open:list = []
+                        periodo_not_open.append(empreendimento[0])
+                        utils.jsonFile.write(periodo_not_open_path, data=periodo_not_open)
+                        break
+                        #return False
+                        #raise exceptions.CobrancaError(f"Erro: {err}")
                     continue
                     
         
