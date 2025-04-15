@@ -147,10 +147,18 @@ class EmailToClient:
                 msg = msg.replace("{{unidade}}", f"Unidade {dados['unidade']}")
                 msg = msg.replace("{{nome_cliente}}", dados['nome'].title())
                 msg = msg.replace("{{data}}", dados['date'])
-                                                            
-                                            
+                
+                target_email:str|list = ""                                         
+                if email.startswith('1'):
+                    target_email = [
+                        email,
+                        email[1:]
+                    ]
+                else:
+                    target_email = email
+                                       
                 send_email.mensagem(
-                    Destino=email,
+                    Destino=target_email,
                     #Destino='renan.oliveira@patrimar.com.br',
                     Assunto=assunto,
                     CC = "",
@@ -187,6 +195,7 @@ class EmailToClient:
                 continue
             except Exception as err:
                 print(P(f"    Erro ao enviar email para {email} - {type(err)}", color='red'))
+                print(traceback.format_exc())
                 return
         
         print(P(f"    Erro ao enviar email para {email} - Timeout", color='red'))
