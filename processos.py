@@ -156,6 +156,10 @@ class Processos:
         print(P(f"Executando relatório partidas individuais em {date.strftime('%d/%m/%Y')}", color='yellow'))
         
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if self.etapa.executed_today(ultima_etapa):
+                print(P(f"    {ultima_etapa} já foi executada hoje!", color='cyan'))
+                sys.exit()
+                
             if (not self.etapa.executed_month(etapa) or etapa == ""):
                 sap = SAP()
                 try:
@@ -277,6 +281,10 @@ class Processos:
         print(P(f"Executando verificação de lançamentos em {date.strftime('%d/%m/%Y')}", color='yellow'))
         
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if self.etapa.executed_today(ultima_etapa):
+                print(P(f"    {ultima_etapa} já foi executada hoje!", color='cyan'))
+                sys.exit()
+            
             if (not self.etapa.executed_month(etapa) or etapa == ""):
 
                 lista_campos_vazios = pd.DataFrame({"Empresa": []})
@@ -344,6 +352,9 @@ class Processos:
         print(P(f"Executando verificação de retorno do banco em {date.strftime('%d/%m/%Y')}", color='yellow'))
         
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
+            if self.etapa.executed_today(ultima_etapa):
+                print(P(f"    {ultima_etapa} já foi executada hoje!", color='cyan'))
+                sys.exit()
             if (not self.etapa.executed_month(etapa) or etapa == ""):
                 path = SAP().relatorio_partidas_individuais_cliente(date)
                 df = pd.read_excel(path)

@@ -47,6 +47,7 @@ class Etapa:
             return (self.date.month == datetime.fromisoformat(data[etapa]).month) and (self.date.year == datetime.fromisoformat(data[etapa]).year)
         return False
     
+    
     def reset_etapa(self, etapa:str):
         data = self.load()
         if etapa in data:
@@ -61,6 +62,6 @@ if __name__ == "__main__":
     #etapa._Etapa__date = datetime(2025, 2, 1)
     #etapa.save('teste')
     print(etapa.load())
-    print(etapa.executed_month('teste'))
-    etapa.reset_etapa('teste')
-    pass
+    print(etapa.executed_today('teste'))
+    #etapa.reset_etapa('teste')
+    #pass
