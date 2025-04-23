@@ -204,7 +204,7 @@ class Imobme(Nav):
         
         self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[3]/div[1]/div/button').click()
         
-        empreendimentos = empreendimentos[0:5]
+        empreendimentos = empreendimentos#[0:5]
         cont = 0   
         for empreendimento in empreendimentos:
             cont += 1
