@@ -418,7 +418,12 @@ class Processos:
         
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
             if (not self.etapa.executed_month(etapa) or etapa == ""):
-                if SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, mover_pdf=mover_pdf):
+                try:
+                    boletos_gerados = SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, mover_pdf=mover_pdf)
+                except:
+                    boletos_gerados = False
+                    
+                if boletos_gerados:
                     self.etapa.save(etapa)
                     self.informativo.sucess("Geração de boletos executada com sucesso!")
                     if finalizar:

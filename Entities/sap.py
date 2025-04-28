@@ -123,6 +123,10 @@ class SAP(SAPManipulation):
 
             self.session.findById("wnd[0]/tbar[1]/btn[8]").press()
             
+            if (sbar:=self.session.findById("wnd[0]/sbar").text) == 'Nenhum registro encontrado para os parâmetros informados':
+                Logs().register(status='Report', description=f"Relatório de boletos não encontrado para o mês {date.strftime('%m/%Y')}<br>\n{sbar}")
+                self.fechar_sap()
+                return True
             
             self.session.findById("wnd[0]/usr/shell").setCurrentCell( -1,"")
             self.session.findById("wnd[0]/usr/shell").selectAll()
