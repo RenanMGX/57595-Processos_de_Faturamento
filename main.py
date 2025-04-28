@@ -3,16 +3,20 @@ from  processos import Processos
 #from datetime import datetime
 from Entities.sap import SAP
 from Entities.dependencies.functions import P
+from Entities.dependencies.config import Config
 from Entities.dependencies.logs import Logs, traceback
 from Entities import utils
 from Entities.dependencies.arguments import Arguments
+from dateutil.relativedelta import relativedelta
 
 class Execute:
     @staticmethod
     def start(date = datetime.now()):
+        if date.day <= int(Config()['param']['dias_ate_virar_mes']):
+            date = datetime.now() - relativedelta(months=1)
         #processos = Processos(date, pasta=r'W:\BOLETOS_SEGUNDA_VIA_HML')
         processos = Processos(utils.primeiro_dia_proximo_mes(date))
-        
+
         print(P('  ---> Iniciando Automação <---  \n', color='green'))
         
         # Etapa 1
