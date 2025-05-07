@@ -44,6 +44,7 @@ class NavegadorChrome(Chrome):
                  speak:bool=False,
                  download_path:str="",
                  save_user:bool = False,
+                 headless:bool=True
         ):
         """
         Inicializa o navegador com configurações customizadas e gerencia o diretório de downloads e perfil de usuário.
@@ -68,23 +69,25 @@ class NavegadorChrome(Chrome):
             None
         """
         # Cria diretório de download, se necessário
+        if options is None:
+            options = Options()
+        
         if download_path:
             if not os.path.exists(download_path):
                 os.makedirs(download_path)
             prefs:dict = {"download.default_directory": download_path}
             self.download_path = download_path
-            if options:
-                options.add_experimental_option("prefs", prefs)
-            else:
-                options = Options()
-                options.add_experimental_option("prefs", prefs)
+            options.add_experimental_option("prefs", prefs)
         
         if save_user:
-            if options:
-                options.add_argument(f"user-data-dir=C:\\Users\\{os.getlogin()}\\AppData\\Local\\Google")
-            else:
-                options = Options()
-                options.add_argument(f"user-data-dir=C:\\Users\\{os.getlogin()}\\AppData\\Local\\Google")
+            options.add_argument(f"user-data-dir=C:\\Users\\{os.getlogin()}\\AppData\\Local\\Google")
+                
+        if headless:
+            options.add_argument("--headless")  # Ativa o modo headless
+            options.add_argument("--disable-gpu")  # Desativa o uso de GPU (opcional)
+            options.add_argument("--window-size=1920,1080")  # Define o tamanho da janela (opcional)
+            options.add_argument("--no-sandbox")  # Necessário em alguns ambientes Linux
+            options.add_argument("--disable-dev-shm-usage")  # Evita problemas de memória compartilhada         
         
 
         super().__init__(options, service, keep_alive) #type: ignore
@@ -245,4 +248,6 @@ class NavegadorChrome(Chrome):
         
 
 if __name__ == "__main__":
-    pass
+    bot = NavegadorChrome(speak=False, download_path="C:\\Users\\Patrimar\\Downloads", headless=False)
+    bot.get("https://www.google.com")
+    input("Pressione Enter para sair...")
