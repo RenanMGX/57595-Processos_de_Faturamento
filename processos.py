@@ -124,7 +124,7 @@ class Processos:
                 else:
                     self.informativo.error("Erro ao executar Imobme cobrança global!")
             else:                
-                self.informativo.error("Erro ao executar Imobme cobrança global, índices não aprovados!")
+                self.informativo.error("Erro ao executar Imobme cobrança global, índices não aprovados! aguardando aprovação pelo responsavel do financeiro")
         else:
             print(P(f"    {etapa} já foi executada este mês!", color='cyan'))
         return False
