@@ -25,16 +25,18 @@ class  Informativo:
         *,
         send_logs:bool = True,
         send_email:bool = True,
-        anexo:list=[]
+        anexo:list=[],
+        use_ia:bool = True
     ):
         print(P(msg, color='green'))
         
-        try:
-            email_melhorado = self.ia.perguntar(msg)
-            if email_melhorado.text:
-                msg = email_melhorado.text
-        except:
-            pass
+        if use_ia:
+            try:
+                email_melhorado = self.ia.perguntar(msg)
+                if email_melhorado.text:
+                    msg = email_melhorado.text
+            except:
+                pass
         
         
         if send_logs:
@@ -61,14 +63,16 @@ class  Informativo:
         *,
         send_logs:bool = True,
         send_email:bool = True,
-        anexo:list=[]
+        anexo:list=[],
+        use_ia:bool = True
     ):
-        try:
-            email_melhorado = self.ia.perguntar(msg)
-            if email_melhorado.text:
-                msg = email_melhorado.text
-        except:
-            pass
+        if use_ia:
+            try:
+                email_melhorado = self.ia.perguntar(msg)
+                if email_melhorado.text:
+                    msg = email_melhorado.text
+            except:
+                pass
         
         if send_logs:
             Logs().register(status='Error', description=msg, exception=traceback.format_exc())

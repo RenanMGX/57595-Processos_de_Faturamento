@@ -107,11 +107,18 @@ class GeminiIA:
         return response
         
 if __name__ == "__main__":
-    with open("token.txt", "r") as _file:
-        api_token = _file.read().strip()
+    from credenciais import Credential
+    api_token = Credential('GeminiIA-Token-Default').load()['token']
     
-    ia = GeminiIA(token=api_token, model='gemini-2.0-flash-lite')
+    ia = GeminiIA(token=api_token, model='gemini-2.0-flash-lite',
+                  instructions="vc irá receber um Tracback de um programa python vc vai analisar e explicar o erro de forma curta e objetiva e sujerir uma solução de forma curta e objetiva"
+                  
+                  )
+    try:
+        import json
+        json.loads("{")
+    except Exception as e:
+        import traceback
+        response = ia.perguntar(traceback.format_exc())
     
-    response = ia.perguntar("Qual é o seu nome?")
-    
-    print(response.text)
+        print(response.text)

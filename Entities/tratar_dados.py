@@ -19,7 +19,7 @@ class TratarDados:
         
         df = pd.read_excel(path)
         try:    
-            df = df[['Empresa', 'Nº documento', 'Banco da empresa']]
+            df = df[['Empresa', 'Nº documento', 'Banco da empresa', 'Solicitação de L/C']]
         except KeyError as err:
             raise KeyError(f"Colunas não encontradas! -> {err}")
         
@@ -33,7 +33,12 @@ class TratarDados:
                 continue
             for banco in bancos:
                 temp = {}
-                temp['docs'] = df[(df['Empresa'] == empresa) & (df['Banco da empresa'] == banco)]['Nº documento'].dropna().astype(int).tolist()
+                temp['docs'] = df[
+                    (df['Empresa'] == empresa) &
+                    (df['Banco da empresa'] == banco) &
+                    (df['Solicitação de L/C'].isna())
+                    ]['Nº documento'].dropna().astype(int).tolist()
+                #import pdb; pdb.set_trace()
                 if not temp['docs']:
                     continue
                 temp['empresa'] = empresa

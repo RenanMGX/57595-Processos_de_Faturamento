@@ -222,6 +222,7 @@ class Processos:
 
                 dados:List[Dict[str,object]] = utils.jsonFile.read('docs.json')
                 
+                erros = []
                 for dado in dados:
                     if not dado['docs']:
                         print(P(f"    {dado['empresa']} não possui documentos!", color='cyan'))
@@ -232,11 +233,16 @@ class Processos:
                     except Exception as err:
                         print(P(f"    Erro ao executar o processo! -> {err}", color='red'))
                         Logs().register(status='Report', description=str(err), exception=traceback.format_exc())
+                        erros.append(f"\n-------------------------------\nforam encontrado erros no processsamento de dados da empresa:{dado['empresa']}\n{str(err)}\n--------------------------------\n")
                         continue
                     
                 sap.fechar_sap()
                 self.etapa.save(etapa)
-                self.informativo.sucess("Geração de arquivos de remessa executada com sucesso!")
+                if erros:
+                    self.informativo.sucess(f"Geração de arquivos de remessa executada! porem com alguns errors\n{erros}")
+                else:
+                    self.informativo.sucess("Geração de arquivos de remessa executada com sucesso!")
+                    
                 if finalizar:
                     print(P("Finalizando aplicação...", color='magenta'))
                     sys.exit()
