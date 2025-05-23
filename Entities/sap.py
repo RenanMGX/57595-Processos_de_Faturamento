@@ -55,14 +55,13 @@ class SAP(SAPManipulation):
     
     
     @SAPManipulation.start_SAP
-    def gerar_arquivos_de_remessa(self, data:dict) -> bool:
+    def gerar_arquivos_de_remessa(self, data:dict) -> str:
         try:
             data['empresa']
             data['banco']
             data['docs']
         except KeyError as err:
             raise KeyError(f"Chave não encontrada! -> {err}")
-        
         
         self.session.findById("wnd[0]/tbar[0]/okcd").text = "/n zfi010"
         self.session.findById("wnd[0]").sendVKey(0)
@@ -75,28 +74,13 @@ class SAP(SAPManipulation):
         self.session.findById("wnd[1]/tbar[0]/btn[24]").press()
         self.session.findById("wnd[1]/tbar[0]/btn[8]").press()
         
-        cont = 0
-        while True:
-            self.session.findById("wnd[0]/tbar[1]/btn[8]").press()
-            result = self.session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").getCellValue(0, "MSG")
-            if result == "Nenhum documento encontrado":
-                return True
+        #import pdb; pdb.set_trace()
+        self.session.findById("wnd[0]/tbar[1]/btn[8]").press()
+        result = self.session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").getCellValue(0, "MSG")
+        if result == "Nenhum documento encontrado":
+            return ""
+        return result
             
-            if cont >= 15:
-                c = 0
-                infor_errors = []
-                while True:
-                    try:
-                        infor_errors.append(self.session.findById(f"wnd[0]/usr/cntlGRID1/shellcont/shell").getCellValue(c, "MSG"))
-                        c += 1
-                    except:
-                        break
-                raise Exception(f"Erros encontrados! -> {infor_errors}")
-            else:
-                cont += 1
-                sleep(1)
-            
-            self.session.findById("wnd[0]/tbar[0]/btn[3]").press()
     
 
     @SAPManipulation.start_SAP

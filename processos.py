@@ -220,26 +220,47 @@ class Processos:
             if (not self.etapa.executed_month(etapa) or etapa == ""):
                 sap = SAP()
 
-                dados:List[Dict[str,object]] = utils.jsonFile.read('docs.json')
+                _dados:List[Dict[str,object]] = utils.jsonFile.read('docs.json')
+                
+                dados:dict = {_dados.index(x):x for x in _dados}
                 
                 erros = []
-                for dado in dados:
-                    if not dado['docs']:
-                        print(P(f"    {dado['empresa']} não possui documentos!", color='cyan'))
-                        continue
+                for _ in range(6):
+                    if not dados:
+                        break
+                    print(P(f"tentativa {_+1}/6"))
+                    print(P(f"dados restantes: {len(dados)}"))
+                    dados_to_remove = []
                     
-                    try:
-                        sap.gerar_arquivos_de_remessa(data=dado)
-                    except Exception as err:
-                        print(P(f"    Erro ao executar o processo! -> {err}", color='red'))
-                        Logs().register(status='Report', description=str(err), exception=traceback.format_exc())
-                        erros.append(f"\n-------------------------------\nforam encontrado erros no processsamento de dados da empresa:{dado['empresa']}\n{str(err)}\n--------------------------------\n")
-                        continue
-                    
+                    for index, dado in dados.items():
+                        print(P(f"    processando dados {index + 1}/{len(dados)}"), end='\r')
+                        
+                        if not dado['docs']:
+                            print(P(f"    {dado['empresa']} não possui documentos!", color='cyan'))
+                            continue
+                        
+                        try:
+                            result = sap.gerar_arquivos_de_remessa(data=dado)
+                            if not result:
+                                dados_to_remove.append(index)
+                            if _ >= 5:
+                                erros.append(f"\nforam encontrado erros no processsamento de dados da empresa:{dado['empresa']}\n{result}\n")
+                                Logs().register(status='Report', description=f"\nforam encontrado erros no processsamento de dados da empresa:{dado['empresa']}\n{result}\n")
+                        except Exception as err:
+                            print(P(f"    Erro ao executar o processo! -> {err}", color='red'))
+                            Logs().register(status='Report', description=str(err), exception=traceback.format_exc())
+                            #erros.append(f"\n-------------------------------\nforam encontrado erros no processsamento de dados da empresa:{dado['empresa']}\n{str(err)}\n--------------------------------\n")
+                            continue
+                    print()
+                    if dados_to_remove:
+                        for index in dados_to_remove:
+                            del dados[index]
+                            
+                print(P(" "))        
                 sap.fechar_sap()
                 self.etapa.save(etapa)
                 if erros:
-                    self.informativo.sucess(f"Geração de arquivos de remessa executada! porem com alguns errors\n{erros}")
+                    self.informativo.sucess(f"Geração de arquivos de remessa executada! porem com alguns errors\n{'\n'.join(erros)}")
                 else:
                     self.informativo.sucess("Geração de arquivos de remessa executada com sucesso!")
                     
