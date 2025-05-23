@@ -12,8 +12,12 @@ from dateutil.relativedelta import relativedelta
 class Execute:
     @staticmethod
     def start(date = datetime.now()):
+        if date.weekday() >= 5:
+            import sys; sys.exit()
+            
         if date.day <= int(Config()['param']['dias_ate_virar_mes']):
             date = datetime.now() - relativedelta(months=1)
+            
         #processos = Processos(date, pasta=r'W:\BOLETOS_SEGUNDA_VIA_HML')
         processos = Processos(utils.primeiro_dia_proximo_mes(date))
 
