@@ -8,6 +8,7 @@ import re
 import shutil
 from Entities.pdf_manipulator import PDFManipulator
 from Entities.dependencies.functions import P
+from Entities.dependencies.logs import Logs, traceback
 import locale
 import json
 locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
@@ -104,6 +105,7 @@ def split_list(lst, partes):
     return [lst[i * k + min(i, r):(i + 1) * k + min(i + 1, r)] for i in range(partes)]    
 
 def cripto(pdf_paths:list):
+    erros = []
     for file_path in pdf_paths:
         try:
             pdf = PDFManipulator(file_path)
@@ -112,9 +114,14 @@ def cripto(pdf_paths:list):
                 print(P(f"    Criptografado: {pdf.CPF_CNPJ} - {os.path.basename(file_path)}", color='yellow'))
             else:
                 print(P(f"    Não criptografado: {os.path.basename(file_path)}", color='red'))
+                erros.append(f"Não criptografado: {os.path.basename(file_path)}")
 
         except Exception as err:
             print(P(f"{err}", color='red'))
+            Logs().register(status='Report', description=str(err), exception=traceback.format_exc())
+    
+    if erros:
+        Logs().register(status='Report', description=f'Erros ao criptografar os seguintes arquivos: {"<br>".join(erros)}')
 
     
 class jsonFile:
