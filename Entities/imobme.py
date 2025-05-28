@@ -400,18 +400,17 @@ class Imobme(Nav):
     
     @verify_login
     def extrair_previsaoReceita(self, *, initial_date: datetime, final_date:datetime):
-        self.__load_page("Relatorio")
-        
-        
-        self._find_element(By.XPATH, '//*[@id="Content"]').location_once_scrolled_into_view
-        for _ in range(5):
+        for _ in range(10):
             try:
+                self.__load_page("Relatorio")
+                sleep(1)
+                self._find_element(By.XPATH, '//*[@id="Content"]').location_once_scrolled_into_view
                 self._find_element(By.ID, 'Relatorios_chzn').click() # clique em selecionar Relatorios
                 self._find_element(By.XPATH, '//*[@id="Relatorios_chzn_o_10"]').click() # clique em IMOBME - Previsão de Receita
                 break
             except:
                 sleep(1)
-            if _ == 4:
+            if _ >= 9:
                 raise exceptions.RelatorioError("Erro ao selecionar relatório!")
         
         #import pdb; pdb.set_trace()
