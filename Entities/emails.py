@@ -191,7 +191,12 @@ class EmailToClient:
                     utils.jsonFile.write(emails_to_delete_path, emails_to_delete)
                 return
             except smtplib.SMTPDataError as e:
-                print(P(f"    Erro ao enviar email para {email} tentando novamente! - {str(e)}", color='yellow'))
+                print(P(f"    Erro ao enviar email para {email} tentando novamente!", color='yellow'))
+                path = os.path.join(os.getcwd(), 'Logs', 'alerta_email_error.txt')
+                with open(path, 'w', encoding="utf-8") as _file2:
+                    _file2.write(f"{str(e)}")
+                    
+                    
                 continue
             except Exception as err:
                 print(P(f"    Erro ao enviar email para {email} - {type(err)}", color='red'))
