@@ -402,7 +402,7 @@ class Imobme(Nav):
     def extrair_previsaoReceita(self, *, initial_date: datetime, final_date:datetime):
         for _ in range(10):
             try:
-                import pdb; pdb.set_trace()
+                #import pdb; pdb.set_trace()
                 self.__load_page("Relatorio")
                 sleep(1)
                 self._find_element(By.XPATH, '//*[@id="Content"]').location_once_scrolled_into_view
