@@ -48,6 +48,7 @@ class Processos:
         self.pasta: str = pasta
         self.emails_to_send_path:str = os.path.join(os.getcwd(), 'emails_to_send.json')
         self.emails_to_delete_path:str = os.path.join(os.getcwd(), 'emails_to_delete.json')
+        self.emails_sended:str = os.path.join(os.getcwd(), 'emails_sended.json')
         self.mensagem_html_path:str = os.path.join(os.getcwd(), 'Entities', 'layout_email')
         #self.assinatura_path:str = r"\\server011\NETLOGON\ASSINATURA"
         self.email_to_send_logs:str = Config()['lista_emails']['emailToSendLogs']
@@ -606,10 +607,10 @@ class Processos:
                 if not df_files_not_found.empty:
                     file_path = os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_arquivosNãoEncontrados.xlsx"))
                     df_files_not_found.to_excel(file_path, index=False)
-                    # self.informativo.error(f"Erro ao executar preparação de lista de envio de e-mails, arquivos não encontrados!",
-                    #                        anexo=[
-                    #                            file_path
-                    #                        ])
+                    self.informativo.error(f"Erro ao executar preparação de lista de envio de e-mails, arquivos não encontrados!",
+                                           anexo=[
+                                               file_path
+                                           ])
                     #print(file_path)
                     os.unlink(file_path)
                     
