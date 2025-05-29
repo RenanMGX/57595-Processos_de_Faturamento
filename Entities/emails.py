@@ -190,8 +190,8 @@ class EmailToClient:
                     emails_to_delete.append(email)
                     utils.jsonFile.write(emails_to_delete_path, emails_to_delete)
                 return
-            except smtplib.SMTPDataError:
-                print(P(f"    Erro ao enviar email para {email} tentando novamente!", color='yellow'))
+            except smtplib.SMTPDataError as e:
+                print(P(f"    Erro ao enviar email para {email} tentando novamente! - {str(e)}", color='yellow'))
                 continue
             except Exception as err:
                 print(P(f"    Erro ao enviar email para {email} - {type(err)}", color='red'))
