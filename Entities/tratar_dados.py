@@ -75,9 +75,8 @@ class TratarDados:
         ]
         
         df = df_previsaoReceita
-        
         df['Email'] = df_previsaoReceita.apply(lambda row: formulas.get_email_principal(row, df_clientes), axis=1)
-        
+                
         return df[
                     [
                         "Código SPE",
@@ -105,7 +104,11 @@ class TratarDados:
 
 
         #print(type(emails_to_send), emails_to_send)
+        count = 1
         for row, value in df.iterrows():
+            print(P(f"Processando {count}/{len(df)}"), end="\r")
+            count += 1
+            
             bloco:str = str(value['Código Bloco'])
             bloco2 = bloco[1:] if bloco.startswith('0') else bloco.zfill(2)
 
@@ -130,6 +133,8 @@ class TratarDados:
                 file = None
                 
             if file:
+                    
+                    
                 try:
                     emails_to_send[value['Email']]
                 except KeyError:
@@ -150,7 +155,8 @@ class TratarDados:
             else:
                 value['file'] = temp_file_path
                 df_files_not_found = pd.concat([df_files_not_found, value.to_frame().T])
-                
+        
+        print()      
         return emails_to_send, df_files_not_found
     
 if __name__ == "__main__":

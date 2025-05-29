@@ -138,6 +138,8 @@ class jsonFile:
     def write(path:str, data:dict|list) -> None:
         if not path.lower().endswith('.json'):
             raise Exception(f"File {path} is not a json file")
+        
+        
         with open(path, 'w', encoding='utf-8') as file:
             json.dump(data, file)
     

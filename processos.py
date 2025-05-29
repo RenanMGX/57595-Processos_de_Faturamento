@@ -598,16 +598,18 @@ class Processos:
                 
                 df:pd.DataFrame = TratarDados.generate_df_with_emails(df_clientes=df_clientes, df_previsaoReceita=df_previsaoReceita)
                 
+                df = df[~df['Email'].isna()]
+                
                 emails_to_send, df_files_not_found = TratarDados.generate_files_to_send(df=df, path=self.pasta)
                 
                 df_files_not_found:pd.DataFrame
                 if not df_files_not_found.empty:
                     file_path = os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_arquivosNãoEncontrados.xlsx"))
                     df_files_not_found.to_excel(file_path, index=False)
-                    self.informativo.error(f"Erro ao executar preparação de lista de envio de e-mails, arquivos não encontrados!",
-                                           anexo=[
-                                               file_path
-                                           ])
+                    # self.informativo.error(f"Erro ao executar preparação de lista de envio de e-mails, arquivos não encontrados!",
+                    #                        anexo=[
+                    #                            file_path
+                    #                        ])
                     #print(file_path)
                     os.unlink(file_path)
                     
