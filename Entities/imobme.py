@@ -73,7 +73,7 @@ class Imobme(Nav):
             download_path = f"C:\\Users\\{os.getlogin()}\\Downloads"
         
         print(P(f"    Navegador DownloadPath {download_path=}   ", color='yellow'))
-        super().__init__(download_path=download_path, save_user=True)
+        super().__init__(download_path=download_path, save_user=True, headless=True)
         
         self.__load_page('Autenticacao/Login')
         sleep(3)
@@ -328,8 +328,8 @@ class Imobme(Nav):
         
         for _ in range(5):
             try:
-                self._find_element(By.XPATH, '//*[@id="Relatorios_chzn"]/a').click()
-                self._find_element(By.XPATH, '//*[@id="Relatorios_chzn_o_9"]').click()
+                self._find_element(By.XPATH, '//*[@id="Relatorios_chosen"]/a').click()
+                self._find_element(By.XPATH, '//*[@id="Relatorios_chosen_o_9"]').click()
                 break
             except:
                 sleep(2)
@@ -402,11 +402,12 @@ class Imobme(Nav):
     def extrair_previsaoReceita(self, *, initial_date: datetime, final_date:datetime):
         for _ in range(10):
             try:
+                import pdb; pdb.set_trace()
                 self.__load_page("Relatorio")
                 sleep(1)
                 self._find_element(By.XPATH, '//*[@id="Content"]').location_once_scrolled_into_view
-                self._find_element(By.ID, 'Relatorios_chzn').click() # clique em selecionar Relatorios
-                self._find_element(By.XPATH, '//*[@id="Relatorios_chzn_o_10"]').click() # clique em IMOBME - Previsão de Receita
+                self._find_element(By.ID, 'Relatorios_chosen').click() # clique em selecionar Relatorios
+                self._find_element(By.XPATH, '//*[@id="Relatorios_chosen_o_10"]').click() # clique em IMOBME - Previsão de Receita
                 break
             except:
                 sleep(1)
