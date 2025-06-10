@@ -457,7 +457,7 @@ class Processos:
             if (not self.etapa.executed_month(etapa) or etapa == ""):
                 try:
                     empresas_exeption:pd.DataFrame = SAP().lista_exeção()
-                    boletos_gerados = SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, mover_pdf=mover_pdf)
+                    boletos_gerados = SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, mover_pdf=mover_pdf, data_exceptions=empresas_exeption)
                 except Exception as err:
                     Logs().register(status='Error', description=str(err), exception=traceback.format_exc())
                     boletos_gerados = False
