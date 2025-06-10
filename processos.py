@@ -225,6 +225,8 @@ class Processos:
                 
                 dados:dict = {_dados.index(x):x for x in _dados}
                 
+                empresas_exeption:pd.DataFrame = sap.lista_exeção()
+                
                 erros = []
                 for _ in range(6):
                     if not dados:
@@ -238,6 +240,13 @@ class Processos:
                         
                         if not dado['docs']:
                             print(P(f"    {dado['empresa']} não possui documentos!", color='cyan'))
+                            continue
+                        
+                        dados_execptions:pd.DataFrame = empresas_exeption[
+                            (empresas_exeption["empresa"] == dado['empresa']) &
+                            (empresas_exeption["banco"] == dado['banco'])
+                        ]
+                        if not dados_execptions.empty:
                             continue
                         
                         try:
@@ -447,6 +456,7 @@ class Processos:
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
             if (not self.etapa.executed_month(etapa) or etapa == ""):
                 try:
+                    empresas_exeption:pd.DataFrame = SAP().lista_exeção()
                     boletos_gerados = SAP().gerar_boletos_no_sap(date=date, pasta=self.pasta, mover_pdf=mover_pdf)
                 except Exception as err:
                     Logs().register(status='Error', description=str(err), exception=traceback.format_exc())

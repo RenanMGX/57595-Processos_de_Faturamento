@@ -84,12 +84,23 @@ class SAP(SAPManipulation):
     
 
     @SAPManipulation.start_SAP
-    def gerar_boletos_no_sap(self, *, date: datetime, pasta:str, debug:bool=False, mover_pdf:bool=False) -> bool:
+    def gerar_boletos_no_sap(self, *, date: datetime, pasta:str, debug:bool=False, mover_pdf:bool=False, data_exceptions:pd.DataFrame|None=None) -> bool:
         try:
             self.session.findById("wnd[0]/tbar[0]/okcd").text = "/n zfi018"
             self.session.findById("wnd[0]").sendVKey(0)
             
-            self.session.findById("wnd[0]/usr/ctxtS_BUKRS-LOW").text = "*"
+            #self.session.findById("wnd[0]/usr/ctxtS_BUKRS-LOW").text = "*"
+            #self.session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,0]").text = "*"
+            
+            if data_exceptions is not None:
+                if not data_exceptions.empty:
+                    self.session.findById("wnd[0]/usr/btn%_S_BUKRS_%_APP_%-VALU_PUSH").press()
+                    self.session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpNOSV").select()
+                    
+                    data_exceptions['empresa'].drop_duplicates().to_clipboard(index=False, header=False)
+                    self.session.findById("wnd[1]/tbar[0]/btn[24]").press()
+                    sleep(1)
+                    self.session.findById("wnd[1]/tbar[0]/btn[8]").press()
             
             self.session.findById("wnd[0]/usr/txtS_GJAHR-LOW").text = str(date.year)
             self.session.findById("wnd[0]/usr/ctxtP_VENINI").text = utils.primeiro_dia_mes(date).strftime("%d.%m.%Y")#"01.02.2025"
@@ -97,8 +108,6 @@ class SAP(SAPManipulation):
             
             self.session.findById("wnd[0]/usr/ctxtP_PASTA").text = pasta # PASTA TEMPORARIA PARA DESENVOLVIMENTO
             self.session.findById("wnd[0]/usr/txtP_ARQ").text = r"{GSBER}-{BLOCO}-{UNIDADE}-{MES_VENC}-{ANO_VENC}-{SERIE}-{PARCELA}-{BELNR}.pdf"
-
-
 
             # apenas para desenvolvimento Remover depois
             if debug:
@@ -128,10 +137,41 @@ class SAP(SAPManipulation):
             
             return False
         
+    @SAPManipulation.start_SAP
+    def lista_exeção(self) -> pd.DataFrame:
+        
+        self.session.findById("wnd[0]").maximize()
+        self.session.findById("wnd[0]/tbar[0]/okcd").text = "/nZFI032"
+        self.session.findById("wnd[0]").sendVKey(0)
+        
+        result = {
+            "empresa": [],
+            "banco": []
+            }
+        
+        count = 0
+        while True:
+            try:
+                empresa = self.session.findById(f"wnd[0]/usr/tblSAPLZFIGF_PIX_TOKENTCTRL_ZFIT_PIX_TOKEN/ctxtZFIT_PIX_TOKEN-BUKRS[0,{count}]").text
+                banco = self.session.findById(f"wnd[0]/usr/tblSAPLZFIGF_PIX_TOKENTCTRL_ZFIT_PIX_TOKEN/ctxtZFIT_PIX_TOKEN-HBKID[1,{count}]").text
+                
+                if empresa == '____':
+                    break
+                
+                result['empresa'].append(empresa)
+                result['banco'].append(banco)
+                
+            except:
+                break
+            count += 1
+            
+        #import pdb; pdb.set_trace()
+        self.fechar_sap()
+        return pd.DataFrame(result)
         
     
     @SAPManipulation.start_SAP
-    def teste(self):
+    def teste(self, **kwargs):
         import pdb; pdb.set_trace()
         
 if __name__ == "__main__":
