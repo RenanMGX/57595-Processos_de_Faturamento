@@ -138,8 +138,8 @@ class Imobme(Nav):
                     self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[4]/div[1]/div/button').click()
                     print(P(f"[{cont}/{len(empreendimentos)}] | Empreendimentos Selecionado...                  ", color='yellow'), end='\r')
                     self.__esperar_carregamento(initial_wait=0.2)        
-                    self._find_element(By.ID, 'Mes_chzn').click()
-                    t_buscar_mes = self._find_element(By.XPATH, '//*[@id="Mes_chzn"]/div/div/input')
+                    self._find_element(By.ID, 'Mes_chosen').click()
+                    t_buscar_mes = self._find_element(By.XPATH, '//*[@id="Mes_chosen"]/div/div/input')
                     t_buscar_mes.clear()
                     t_buscar_mes.send_keys(date.strftime('%B').capitalize())
                     t_buscar_mes.send_keys(Keys.ENTER)
@@ -231,8 +231,8 @@ class Imobme(Nav):
                         self._find_element(By.ID, 'Mes_chosen').click()
                         t_buscar_mes = self._find_element(By.XPATH, '//*[@id="Mes_chosen"]/div/div/input')
                     except:
-                        self._find_element(By.ID, 'Mes_chzn').click()
-                        t_buscar_mes = self._find_element(By.XPATH, '//*[@id="Mes_chzn"]/div/div/input')
+                        self._find_element(By.ID, 'Mes_chosen').click()
+                        t_buscar_mes = self._find_element(By.XPATH, '//*[@id="Mes_chosen"]/div/div/input')
                         
                     t_buscar_mes.clear()
                     t_buscar_mes.send_keys(date.strftime('%B').capitalize())
@@ -297,7 +297,7 @@ class Imobme(Nav):
         self.__esperar_carregamento()
         self._find_element(By.XPATH, '//*[@id="AgreementTabs"]/li[2]/a').click()
         
-        # t_indices = self._find_element(By.ID, 'ddlIndiceBase_chzn')
+        # t_indices = self._find_element(By.ID, 'ddlIndiceBase_chosen')
         # t_indices.click()
         # lista_indices = [indice.text for indice in t_indices.find_elements(By.TAG_NAME, 'li') if indice.text != 'Todos']
         # t_indices.click()
