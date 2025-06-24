@@ -63,7 +63,7 @@ class Imobme(Nav):
             return result
         return wrap
     
-    def __init__(self, download_path:str=""):
+    def __init__(self, download_path:str="", *, headless:bool=False):
         self.__crd:dict = Credential(Config()['credenciais']['imobme']).load()
         
         if not download_path:
@@ -73,7 +73,7 @@ class Imobme(Nav):
             download_path = f"C:\\Users\\{os.getlogin()}\\Downloads"
         
         print(P(f"    Navegador DownloadPath {download_path=}   ", color='yellow'))
-        super().__init__(download_path=download_path, save_user=True, headless=True)
+        super().__init__(download_path=download_path, save_user=True, headless=headless)
         
         self.__load_page('Autenticacao/Login')
         sleep(3)
