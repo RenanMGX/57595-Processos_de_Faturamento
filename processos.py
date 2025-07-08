@@ -27,7 +27,7 @@ class Processos:
     def relatorios_path(self) -> str:
         return os.path.join(os.getcwd(), 'relatorios')
     
-    def __init__(self, date: datetime=datetime.now(), *, pasta: str = r"W:\BOLETOS_SEGUNDA_VIA") -> None:
+    def __init__(self, date: datetime=datetime.now(), *, pasta: str = r"W:\BOLETOS_SEGUNDA_VIA", debug:bool=False) -> None:
         """
         Inicializa a classe Processos definindo a data de referência e a pasta para armazenar boletos.
 
@@ -53,12 +53,17 @@ class Processos:
         #self.assinatura_path:str = r"\\server011\NETLOGON\ASSINATURA"
         self.email_to_send_logs:str = Config()['lista_emails']['emailToSendLogs']
         
-        self.informativo = Informativo(email=self.email_to_send_logs, cc="renan.oliveira@patrimar.com.br", assunto="Informativo da Automação do Processo de Faturamento")
+        self.informativo = Informativo(email=self.email_to_send_logs, cc="renan.oliveira@patrimar.com.br", assunto="Informativo da Automação do Processo de Faturamento", debug=debug)
         
         self.periodo_not_open_path:str = os.path.join(os.getcwd(), 'periodo_not_open.json')
         
         if not os.path.exists(self.relatorios_path):
             os.makedirs(self.relatorios_path)
+            
+        relat_final_path:str = os.path.join(os.getcwd(), 'relatorio_final')
+        if not os.path.exists(relat_final_path):
+            os.makedirs(relat_final_path)
+        self.__relat_final_path:str = os.path.join(relat_final_path, 'relatorio_final.xlsx')
             
     def _limpar_pasta_relatorios(self, *, etapa:str="limpar_pasta_relatorios") -> None:
         if (not self.etapa.executed_month(etapa) or etapa == ""):
@@ -607,22 +612,38 @@ class Processos:
                 
                 df_previsaoReceita = TratarDados.load_previReceita(file_prevReceita_path)
                 
-                df:pd.DataFrame = TratarDados.generate_df_with_emails(df_clientes=df_clientes, df_previsaoReceita=df_previsaoReceita)
+                if os.path.exists(self.__relat_final_path):
+                    try:
+                        Functions.fechar_excel(self.__relat_final_path)
+                        os.unlink(self.__relat_final_path)
+                    except:
+                        pass
+                
+                df:pd.DataFrame = TratarDados.generate_df_with_emails(df_clientes=df_clientes, df_previsaoReceita=df_previsaoReceita, saved_copy_path=self.__relat_final_path)
                 
                 df = df[~df['Email'].isna()]
                 
-                emails_to_send, df_files_not_found = TratarDados.generate_files_to_send(df=df, path=self.pasta)
+                emails_to_send, df_files_not_found, informe_relat_final, paths_relat_final = TratarDados.generate_files_to_send(df=df, path=self.pasta)
+                
+                df_relat_final = pd.read_excel(self.__relat_final_path)
+                df_relat_final['Status de Envio'] = informe_relat_final
+                df_relat_final['Arquivo'] = paths_relat_final
+                df_relat_final.to_excel(self.__relat_final_path, index=False)
+                
+                
                 
                 df_files_not_found:pd.DataFrame
                 if not df_files_not_found.empty:
                     file_path = os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_arquivosNãoEncontrados.xlsx"))
                     df_files_not_found.to_excel(file_path, index=False)
-                    self.informativo.error(f"Erro ao executar preparação de lista de envio de e-mails, arquivos não encontrados!",
-                                           anexo=[
-                                               file_path
-                                           ])
-                    #print(file_path)
-                    os.unlink(file_path)
+                
+                
+                self.informativo.error(f"Emails e arquivos preparados para envio segue anexo o documento do relatorio final e nos proximos dias os emais serão enviados conforme relatado nesse relatorio",
+                                        anexo=[
+                                            self.__relat_final_path
+                                        ])
+                #print(file_path)
+                #os.unlink(df_relat_final)
                     
                 utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
                 utils.jsonFile.write(self.emails_to_delete_path, [])

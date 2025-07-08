@@ -69,13 +69,20 @@ class TratarDados:
         return df
     
     @staticmethod
-    def generate_df_with_emails(*, df_clientes:pd.DataFrame, df_previsaoReceita:pd.DataFrame):
+    def generate_df_with_emails(*, df_clientes:pd.DataFrame, df_previsaoReceita:pd.DataFrame, saved_copy_path:str=""):
         df_previsaoReceita = df_previsaoReceita[
             ~df_previsaoReceita['Documento'].isna()
         ]
         
         df = df_previsaoReceita
         df['Email'] = df_previsaoReceita.apply(lambda row: formulas.get_email_principal(row, df_clientes), axis=1)
+        
+        if saved_copy_path:
+            if saved_copy_path.lower().endswith((".xlsx", ".xls", ".xlsm")):
+                df.to_excel(saved_copy_path, index=False)
+            else:
+                print(P(f"O nome do arquivo '{saved_copy_path}' deve ser um excel!"))
+                
                 
         return df[
                     [
@@ -102,6 +109,8 @@ class TratarDados:
 
         df_files_not_found = pd.DataFrame()
 
+        status_relat_final = []
+        paths_relat_final = []
 
         #print(type(emails_to_send), emails_to_send)
         count = 1
@@ -152,12 +161,19 @@ class TratarDados:
                 emails_to_send[value['Email']]["unidade"] = str(value['Unidade'])
                 emails_to_send[value['Email']]["empresa"] = value['Código SPE']
                 
+                status_relat_final.append("Enviado")
+                paths_relat_final.append(file)
+                
             else:
                 value['file'] = temp_file_path
                 df_files_not_found = pd.concat([df_files_not_found, value.to_frame().T])
+                
+                status_relat_final.append("Anexo não encontrado")
+                
+                paths_relat_final.append(temp_file_path)
         
         print()      
-        return emails_to_send, df_files_not_found
+        return emails_to_send, df_files_not_found, status_relat_final, paths_relat_final
     
 if __name__ == "__main__":
     pass

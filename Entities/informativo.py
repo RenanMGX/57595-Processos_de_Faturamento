@@ -8,10 +8,12 @@ from Entities.dependencies.credenciais import Credential
 
 
 class  Informativo:
-    def __init__(self, *, email:str="", cc:str="", assunto:str="") -> None:
+    def __init__(self, *, email:str="", cc:str="", assunto:str="", debug:bool=False) -> None:
         self.email = email
         self.assunto = assunto
         self.cc = cc
+        
+        self.__debug:bool = debug
         
         self.ia = GeminiIA(
             token=Credential('GeminiIA-Token-Default').load()['token'],
@@ -55,7 +57,8 @@ class  Informativo:
                 for a in anexo:
                     if os.path.exists(a):
                         mandar_email.Anexo(a)
-                mandar_email.send()
+                if not self.__debug:
+                    mandar_email.send()
                 
     def error(
         self,
@@ -90,7 +93,8 @@ class  Informativo:
                 for a in anexo:
                     if os.path.exists(a):
                         mandar_email.Anexo(a)
-                mandar_email.send()
+                if not self.__debug:
+                    mandar_email.send()
     
 if __name__ == "__main__":
     mail = Informativo(email='renan.oliveira@patrimar.com', assunto='Teste')
