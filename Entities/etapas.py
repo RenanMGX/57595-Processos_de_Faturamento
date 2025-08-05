@@ -15,12 +15,14 @@ class Etapa:
     def file_path(self):
         return self.__file_path
     
-    def __init__(self) -> None:
+    def __init__(self, *, file_name:str='etapas.json') -> None:
         self.__date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         if self.date.day <= int(Config()['param']['dias_ate_virar_mes']):
             self.__date = self.date - relativedelta(months=1)
         
-        self.__file_path = os.path.join(os.getcwd(), 'etapas.json')
+        if not file_name.lower().endswith('.json'):
+            file_name += '.json'
+        self.__file_path = os.path.join(os.getcwd(), file_name)
         if not os.path.exists(self.file_path):
             with open(self.file_path, 'w') as _file:
                 json.dump({}, _file)

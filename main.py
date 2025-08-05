@@ -33,7 +33,7 @@ class Execute:
         processos.gerar_arquivos_de_remessa(finalizar=True ,etapa='3.gerar_arquivos_de_remessa', ultima_etapa='2.rel_partidas_individuais')# ETAPA 3 OK
         
         # Etapa 4
-        processos.verificar_lancamentos(etapa="4.verificar_lancamentos", ultima_etapa='3.gerar_arquivos_de_remessa') # ETAPA 4 OK
+        processos.verificar_lancamentos(etapa="4.verificar_lancamentos", ultima_etapa='3.gerar_arquivos_de_remessa', try_timeout=True) # ETAPA 4 OK
         
         # Etapa 5   
         processos.verificar_retorno_do_banco(etapa='5.verificar_retorno_do_banco', ultima_etapa='4.verificar_lancamentos') # ETAPA 5 OK

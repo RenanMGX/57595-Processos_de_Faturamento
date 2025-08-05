@@ -295,7 +295,8 @@ class Processos:
                               finalizar: bool=False,
                               etapa:str, ultima_etapa:str="",
                               ignorar_empresas:list=[],
-                              timeout:int = 5
+                              timeout:int = 5,
+                              try_timeout:bool=False
                               ):
         """
         Realiza a verificação dos lançamentos no SAP para confirmar a efetividade das operações.
@@ -354,6 +355,25 @@ class Processos:
                 
                 file_path = os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_verificarLancamentos.xlsx"))
                 lista_campos_vazios.to_excel(file_path, index=False)
+                
+                if try_timeout:
+                    if not self.etapa.executed_month("verificar_lancamentos_1"):
+                        self.etapa.save("verificar_lancamentos_1")
+                    else:
+                        if not self.etapa.executed_month("verificar_lancamentos_2"):
+                            self.etapa.save("verificar_lancamentos_2")
+                        else:
+                            if not self.etapa.executed_month("verificar_lancamentos_3"):
+                                self.etapa.save("verificar_lancamentos_3")
+                            else:
+                                self.etapa.save(etapa)
+                                self.informativo.sucess("Verificação de lançamentos executada com sucesso!")
+                                if finalizar:
+                                    print(P("Finalizando aplicação...", color='magenta'))
+                                    sys.exit()
+                                return True
+                            
+                            
                 self.informativo.error(f"Erro ao executar verificação de lançamentos as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido:\n- {'\n- '.join(lista_campos_vazios["Empresa"].unique().tolist())}",
                                        anexo=[
                                            file_path
