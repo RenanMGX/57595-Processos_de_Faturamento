@@ -356,25 +356,29 @@ class Processos:
                 file_path = os.path.join(self.relatorios_path, datetime.now().strftime("%Y%m%d%H%M%S_relatorioErro_verificarLancamentos.xlsx"))
                 lista_campos_vazios.to_excel(file_path, index=False)
                 
+                tentativas = ""
                 if try_timeout:
                     if not self.etapa.executed_month("verificar_lancamentos_1"):
+                        tentativas = "Primeira Tentativa: \n"
                         self.etapa.save("verificar_lancamentos_1")
                     else:
                         if not self.etapa.executed_month("verificar_lancamentos_2"):
+                            tentativas = "Segunda Tentativa: \n"
                             self.etapa.save("verificar_lancamentos_2")
                         else:
                             if not self.etapa.executed_month("verificar_lancamentos_3"):
+                                tentativas = "Terceira Tentativa: \n"
                                 self.etapa.save("verificar_lancamentos_3")
                             else:
                                 self.etapa.save(etapa)
-                                self.informativo.sucess("Verificação de lançamentos executada com sucesso!")
+                                self.informativo.sucess(f"Apos 3 tentativas \n esta etapa está sendo pulada,\n mesmo com as seguintes empresas sem o campo 'Solicitação de L/C' preenchido:\n- {'\n- '.join(lista_campos_vazios["Empresa"].unique().tolist())}")
                                 if finalizar:
                                     print(P("Finalizando aplicação...", color='magenta'))
                                     sys.exit()
                                 return True
                             
                             
-                self.informativo.error(f"Erro ao executar verificação de lançamentos as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido:\n- {'\n- '.join(lista_campos_vazios["Empresa"].unique().tolist())}",
+                self.informativo.error(f"{tentativas}Erro ao executar verificação de lançamentos as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido:\n- {'\n- '.join(lista_campos_vazios["Empresa"].unique().tolist())}",
                                        anexo=[
                                            file_path
                                        ])
