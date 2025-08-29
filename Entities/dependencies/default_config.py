@@ -18,7 +18,7 @@ default:Dict[str, Dict[str,object]] = {
     },    
     'path': {
         "download" : f"C:\\Users\\{getuser()}\\Downloads",
-        "planilhaClientes": f"C:\\Users\\{getuser()}\\PATRIMAR ENGENHARIA S A\\RPA - Documentos\\RPA - Dados\\Relatorio_Imobme_Financeiro\\ClientesContratos.json"
+        "planilhaClientes": f"C:\\Users\\{getuser()}\\PATRIMAR ENGENHARIA SA\\RPA - Documentos\\RPA - Dados\\Relatorio_Imobme_Financeiro\\ClientesContratos.json"
     },
     'param': {
         'dias_ate_virar_mes': 7,
