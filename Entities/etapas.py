@@ -25,7 +25,7 @@ class Etapa:
         self.__file_path = os.path.join(os.getcwd(), file_name)
         if not os.path.exists(self.file_path):
             with open(self.file_path, 'w') as _file:
-                json.dump({}, _file)
+                json.dump({}, _file, indent=4, ensure_ascii=False)
                 
     def load(self):
         with open(self.file_path) as _file:
@@ -43,7 +43,7 @@ class Etapa:
             data[etapa] = datetime.now().isoformat()
         
         with open(self.file_path, 'w') as _file:
-            json.dump(data, _file)
+            json.dump(data, _file, indent=4, ensure_ascii=False)
             
     def executed_today(self, etapa:str):
         data = self.load()
@@ -64,7 +64,7 @@ class Etapa:
             data.pop(etapa)
             
             with open(self.file_path, 'w') as _file:
-                json.dump(data, _file)
+                json.dump(data, _file, indent=4, ensure_ascii=False)
         
         
 if __name__ == "__main__":
