@@ -407,11 +407,16 @@ class Imobme(Nav):
                 sleep(1)
                 self._find_element(By.XPATH, '//*[@id="Content"]').location_once_scrolled_into_view
                 self._find_element(By.ID, 'Relatorios_chosen').click() # clique em selecionar Relatorios
-                self._find_element(By.XPATH, '//*[@id="Relatorios_chosen_o_10"]').click() # clique em IMOBME - Previsão de Receita
+                #self._find_element(By.XPATH, '//*[@id="Relatorios_chosen_o_10"]').click() # clique em IMOBME - Previsão de Receita
+                self.select_relatorio(tag='//*[@id="Relatorios_chosen"]/div/ul', relat="IMOBME - Previsão de Receita") # clique em IMOBME - Previsão de Receita
                 break
-            except:
+            except Exception as erro:
+                import traceback
+                print(traceback.format_exc())
+                
                 sleep(1)
             if _ >= 9:
+                Logs().register(status='Error', description="Erro ao selecionar relatório!", exception=traceback.format_exc())
                 raise exceptions.RelatorioError("Erro ao selecionar relatório!")
         
         #import pdb; pdb.set_trace()
@@ -487,7 +492,18 @@ class Imobme(Nav):
         self._find_element(By.TAG_NAME, 'html').location
         print(P("extração de relatorios no imobme concluida!"))
         
+    def select_relatorio(self, *, tag:str, relat:str):
+        ul_tag = self._find_element(By.XPATH, tag)
         
+        for tag_li in ul_tag.find_elements(By.TAG_NAME, 'li'):
+            try:
+                if tag_li.text.lower().replace(" ", "") == relat.lower().replace(" ", ""):
+                    tag_li.click()
+                    return
+            except Exception as error:
+                pass
+        
+        raise ValueError(f"relatorio {relat} nao encontrado na lista de relatorios")
         
     def __ultimo_download(self) -> str:
         for _ in range(60):

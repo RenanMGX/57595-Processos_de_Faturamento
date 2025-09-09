@@ -1,5 +1,7 @@
 from typing import Dict
 from getpass import getuser
+from patrimar_dependencies.sharepointfolder import SharePointFolders
+import os
 
 default:Dict[str, Dict[str,object]] = {
     'log': {
@@ -18,7 +20,7 @@ default:Dict[str, Dict[str,object]] = {
     },    
     'path': {
         "download" : f"C:\\Users\\{getuser()}\\Downloads",
-        "planilhaClientes": f"C:\\Users\\{getuser()}\\PATRIMAR ENGENHARIA S A\\RPA - Documentos\\RPA - Dados\\Relatorio_Imobme_Financeiro\\ClientesContratos.json"
+        "planilhaClientes": os.path.join(SharePointFolders(r'RPA - Dados\Relatorio_Imobme_Financeiro').value, 'ClientesContratos.json')
     },
     'param': {
         'dias_ate_virar_mes': 7,
