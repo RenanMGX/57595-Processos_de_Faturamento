@@ -310,9 +310,13 @@ class Imobme(Nav):
         
         for status in t_body.find_elements(By.TAG_NAME, 'tr'):
             for indice in lista_indices:
-                if indice in status.text:
-                    if 'Aprovado' in status.text:
-                        lista_indices.remove(indice)
+                if 'Aprovado' in status.text:
+                    if (value:=re.search(r'^[\s\S]+?(?=\d{2}/\d{2}/\d{4})', status.text)):
+                        if indice.lower().strip() == value.group().lower().strip():
+                            lista_indices.remove(indice)
+                            break
+                
+        #import pdb; pdb.set_trace()
                         
         if not lista_indices:
             print(P("Todos os indices estão aprovados!", color='green'))
