@@ -650,11 +650,20 @@ class Processos:
                 emails_to_send, df_files_not_found, informe_relat_final, paths_relat_final = TratarDados.generate_files_to_send(df=df, path=self.pasta)
                 
                 df_relat_final = pd.read_excel(self.__relat_final_path)
+                
+                if len(informe_relat_final) < len(df_relat_final):
+                    informe_relat_final.extend(['Error'] * (len(df_relat_final) - len(informe_relat_final)))
+                elif len(informe_relat_final) > len(df_relat_final):
+                    informe_relat_final = informe_relat_final[:len(df_relat_final)]
                 df_relat_final['Status de Envio'] = informe_relat_final
+                
+                if len(paths_relat_final) < len(df_relat_final):
+                    paths_relat_final.extend(['Error'] * (len(df_relat_final) - len(paths_relat_final)))
+                elif len(paths_relat_final) > len(df_relat_final):
+                    paths_relat_final = paths_relat_final[:len(df_relat_final)]
+                    
                 df_relat_final['Arquivo'] = paths_relat_final
                 df_relat_final.to_excel(self.__relat_final_path, index=False)
-                
-                
                 
                 df_files_not_found:pd.DataFrame
                 if not df_files_not_found.empty:
