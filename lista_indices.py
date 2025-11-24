@@ -7,7 +7,7 @@ lista_indices = [
     r'CDI',
     r'CDI 3% a.a.',
     r'IPCA',
-    r'IPCA 12a.a.',
+    r'IPCA 12a.a. [NAO USAR]',
     r'IPCA 1%',
     r'POUPA 12',
     r'POUPA 15',

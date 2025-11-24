@@ -483,16 +483,20 @@ class Imobme(Nav):
             print(P("Atualizando Pagina"))
         
         print(P("verificando pasta de download"))
-        for _ in range(10*60):
-            isnot_excel = False 
-            for file in os.listdir(self.download_path):
-                if not file.endswith(".xlsx"):
-                    isnot_excel = True
-            if not isnot_excel:
-                sleep(2)
-                break
-            else:
-                sleep(1)
+        
+        seconds_to_wait = 10*60       
+        for _ in range(seconds_to_wait):
+            arquivos = os.listdir(self.download_path)
+            arquivos_caminhos = [os.path.join(self.download_path, f) for f in arquivos]
+            file = max(arquivos_caminhos, key=os.path.getmtime)
+            if not file.endswith('.crdownload'):
+                sleep(3)
+                return file
+            sleep(1)
+            if _ >= (seconds_to_wait)-1:
+                raise TimeoutError("O download demorou mais de 10 minutos para ser concluído.")
+                                
+                
         self._find_element(By.TAG_NAME, 'html').location
         print(P("extração de relatorios no imobme concluida!"))
         

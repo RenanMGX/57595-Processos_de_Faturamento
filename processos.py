@@ -599,6 +599,8 @@ class Processos:
             date = self.date
         print(P(f"Executando preparação de lista de envio de e-mails em {date.strftime('%d/%m/%Y')}", color='yellow'))
         
+        raise Exception("Envio de e-mails desativado temporariamente!") # remover essa linha quando for reativar o envio de e-mails
+        
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
             if (not self.etapa.executed_month(etapa) or etapa == ""):
                 planila_clientes_path:str = Config()['path']['planilhaClientes']

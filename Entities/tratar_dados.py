@@ -142,8 +142,6 @@ class TratarDados:
                 file = None
                 
             if file:
-                    
-                    
                 try:
                     emails_to_send[value['Email']]
                 except KeyError:
