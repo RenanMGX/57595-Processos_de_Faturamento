@@ -14,7 +14,7 @@
 *Thumbs.db
 *.xlsx
 *old_things
-
+*teste_email.py
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,venv,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,venv,visualstudiocode

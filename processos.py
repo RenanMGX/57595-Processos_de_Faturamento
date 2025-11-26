@@ -366,16 +366,16 @@ class Processos:
                             tentativas = "Segunda Tentativa: \n"
                             self.etapa.save("verificar_lancamentos_2")
                         else:
-                            if not self.etapa.executed_month("verificar_lancamentos_3"):
-                                tentativas = "Terceira Tentativa: \n"
-                                self.etapa.save("verificar_lancamentos_3")
-                            else:
-                                self.etapa.save(etapa)
-                                self.informativo.sucess(f"Apos 3 tentativas \n esta etapa está sendo pulada,\n mesmo com as seguintes empresas sem o campo 'Solicitação de L/C' preenchido:\n- {'\n- '.join(lista_campos_vazios["Empresa"].unique().tolist())}")
-                                if finalizar:
-                                    print(P("Finalizando aplicação...", color='magenta'))
-                                    sys.exit()
-                                return True
+                            # if not self.etapa.executed_month("verificar_lancamentos_3"):
+                            #     tentativas = "Terceira Tentativa: \n"
+                            #     self.etapa.save("verificar_lancamentos_3")
+                            # else:
+                            self.etapa.save(etapa)
+                            self.informativo.sucess(f"Apos 2 tentativas \n esta etapa está sendo pulada,\n mesmo com as seguintes empresas sem o campo 'Solicitação de L/C' preenchido:\n- {'\n- '.join(lista_campos_vazios["Empresa"].unique().tolist())}")
+                            if finalizar:
+                                print(P("Finalizando aplicação...", color='magenta'))
+                                sys.exit()
+                            return True
                             
                             
                 self.informativo.error(f"{tentativas}Erro ao executar verificação de lançamentos as seguintes empresas não estão com o campo 'Solicitação de L/C' preenchido:\n- {'\n- '.join(lista_campos_vazios["Empresa"].unique().tolist())}",
@@ -599,7 +599,7 @@ class Processos:
             date = self.date
         print(P(f"Executando preparação de lista de envio de e-mails em {date.strftime('%d/%m/%Y')}", color='yellow'))
         
-        raise Exception("Envio de e-mails desativado temporariamente!") # remover essa linha quando for reativar o envio de e-mails
+        #raise Exception("Envio de e-mails desativado temporariamente!") # remover essa linha quando for reativar o envio de e-mails
         
         if (self.etapa.executed_month(ultima_etapa) or ultima_etapa == ""):
             if (not self.etapa.executed_month(etapa) or etapa == ""):

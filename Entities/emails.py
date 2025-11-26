@@ -123,7 +123,7 @@ def set_lock(l):
 class EmailToClient:
     @staticmethod
     def send(_file: tuple, mensagem_html_path:str, emails_to_delete_path:str, email_origin:Literal['email', 'email_debug'] = 'email'):
-        email:str = _file[0]
+        email:str|list = _file[0]
         dados:dict = _file[1]
         
         for _ in range(5):
@@ -148,12 +148,15 @@ class EmailToClient:
                 msg = msg.replace("{{nome_cliente}}", dados['nome'].title())
                 msg = msg.replace("{{data}}", dados['date'])
                 
-                target_email:str|list = ""                                         
-                if email.startswith('1'):
-                    target_email = [
-                        email,
-                        email[1:]
-                    ]
+                target_email:str|list = ""  
+                if isinstance(email, str):                                    
+                    if email.startswith('1'):
+                        target_email = [
+                            email,
+                            email[1:]
+                        ]
+                    else:
+                        target_email = email
                 else:
                     target_email = email
                                        
@@ -182,6 +185,8 @@ class EmailToClient:
                 send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', 'icons', f'tel.png'), tag='icon-tel')
                 send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', 'icons', f'whatsapp.png'), tag='icon-whatsapp')
                 send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', 'icons', f'internet.png'), tag='icon-internet')
+                send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', 'icons', f'android.png'), tag='icon-android')
+                send_email.addImagemCid(Attachment_path=os.path.join(mensagem_html_path, 'img', 'icons', f'ios.png'), tag='icon-ios')
                                 
                 send_email.send(msg_envio=f"    Email enviado para {email} - assunto: {assunto}")    
                 
