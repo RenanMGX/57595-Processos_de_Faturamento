@@ -5,14 +5,16 @@ from datetime import datetime
 import re
 from .functions import Functions
 import traceback
+import asyncio
 import requests
+requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning) #type:ignore
+
 import json
 from getpass import getuser
 from socket import gethostname
 from .project_name import PROJECT_NAME
 from .config import Config
-from functions import P
-from credenciais import Credential
+
 
 class Logs:
     @property
@@ -23,9 +25,9 @@ class Logs:
     def name(self) -> str:
         return self.__name
     
-    def __init__(self, name:str=PROJECT_NAME, *, path_folder:str=os.path.join(os.getcwd(), 'Logs'), hostname:str=Config()['log']['hostname'], port:str=Config()['log']['port'], token:str=Credential(Config()['log']['token']).load()['token']) -> None:
+    def __init__(self, name:str=PROJECT_NAME, *, path_folder:str=os.path.join(os.getcwd(), 'Logs'), hostname:str=Config()['log']['hostname'], port:str=Config()['log']['port'], token:str=Config()['log']['token']) -> None:
         self.__path_folder:str = path_folder
-        self.__name:str = name
+        self.__name:str = PROJECT_NAME
         if not os.path.exists(self.path_folder):
             os.makedirs(self.path_folder)
             
@@ -35,7 +37,7 @@ class Logs:
             
     def online_register(self, *, name_rpa:str, status:Literal[0,1,2,99], date:datetime, descricao:str, exception:str="", nome_pc:str="", nome_agente=""):
         try:
-            reqUrl = f"http://{self.__hostname}:{self.__port}/api/rpa_logs/registrar"
+            reqUrl = f"https://{self.__hostname}:{self.__port}/api/rpa_logs/registrar"
 
             headersList = {
             "Authorization": f"Token {self.__token}",
@@ -102,9 +104,7 @@ class Logs:
                 #pass
                 Functions.fechar_excel(file)
             except Exception as error:
-                raise error  
-        
-        print(P(f"{status}: {str(description)}", color='magenta')) 
+                raise error   
 
 if __name__ == "__main__":
     bot = Logs("testes")
