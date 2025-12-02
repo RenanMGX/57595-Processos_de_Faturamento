@@ -54,7 +54,7 @@ class Logs:
             "exception": str(exception)
             })
 
-            response = requests.request("PATCH", reqUrl, data=payload,  headers=headersList)
+            response = requests.request("PATCH", reqUrl, data=payload,  headers=headersList, verify=False)
 
             #print(response.text)
         except Exception as error:
