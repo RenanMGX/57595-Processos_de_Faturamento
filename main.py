@@ -1,3 +1,5 @@
+import os
+import dotenv ; dotenv.load_dotenv(); dotent_path = dotenv.find_dotenv(usecwd=True)
 from Entities.imobme import Imobme, datetime
 from  processos import Processos
 #from datetime import datetime
@@ -26,8 +28,8 @@ class Execute:
         # Etapa 1
         processos.imobme_cobranca_global(finalizar=True, etapa='1.imobme_cobranca_global') # ETAPA 1 OK
         
-        # Etapa 2       
-        processos.rel_partidas_individuais(etapa='2.rel_partidas_individuais', ultima_etapa='1.imobme_cobranca_global')#, remover_empresas=["P027"]) # ETAPA 2 OK
+        # Etapa 2    
+        processos.rel_partidas_individuais(etapa='2.rel_partidas_individuais', ultima_etapa='1.imobme_cobranca_global', remover_empresas=(empresa.split(";") if (empresa:=os.getenv("REMOVER_EMPRESAS")) else [])) # ETAPA 2 OK
         
         # Etapa 3
         processos.gerar_arquivos_de_remessa(finalizar=True ,etapa='3.gerar_arquivos_de_remessa', ultima_etapa='2.rel_partidas_individuais')# ETAPA 3 OK
@@ -58,10 +60,16 @@ class Execute:
                 
         # Etapa 11 - Final
         processos.finalizar(etapa='11.finalizar', ultima_etapa='10.enviar_emails')
+        dotenv.unset_key(dotent_path, 'REMOVER_EMPRESAS')
         
 def teste():
+    date = datetime.now()
+    processos = Processos(utils.primeiro_dia_proximo_mes(date))
+
+    processos.rel_partidas_individuais(etapa='2.rel_partidas_individuais', ultima_etapa='1.imobme_cobranca_global', remover_empresas=(empresa.split(";") if (empresa:=os.getenv("REMOVER_EMPRESAS")) else [])) # ETAPA 2 OK
+
     print("testado")   
-    input()    
+    #input()    
 
 if __name__ == "__main__":
     Arguments({

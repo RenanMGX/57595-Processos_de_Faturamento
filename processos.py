@@ -157,6 +157,7 @@ class Processos:
             bool or None: Retorna True se o relatório foi gerado com sucesso; 
                           False ou None em caso de erro.
         """
+
         if date is None:
             date = self.date
         print(P(f"Executando relatório partidas individuais em {date.strftime('%d/%m/%Y')}", color='yellow'))
