@@ -162,6 +162,8 @@ class Imobme(Nav):
                     self._find_element(By.ID, 'btnNovo').click()
                     print(P(f"[{cont}/{len(empreendimentos)}] | Procurando Faturamentos...               ", color='yellow'), end='\r')
                     
+                    #import pdb; pdb.set_trace()
+                    
                     self.__esperar_carregamento(initial_wait=0.2)
                     self._find_element(By.ID, 'Salvar').click()
                     print(P(f"[{cont}/{len(empreendimentos)}] | Executando Faturamentos...                  ", color='yellow'), end='\r')
@@ -249,6 +251,8 @@ class Imobme(Nav):
                     self._find_element(By.ID, 'AddNovo').click()
                     print(P(f"[{cont}/{len(empreendimentos)}] | Procurando Faturamentos...               ", color='yellow'), end='\r')
                     
+                    #import pdb; pdb.set_trace()
+                    
                     self.__esperar_carregamento(initial_wait=0.2)
                     self._find_element(By.ID, 'Salvar').click()
                     print(P(f"[{cont}/{len(empreendimentos)}] | Executando Faturamentos...                  ", color='yellow'), end='\r')
@@ -302,11 +306,21 @@ class Imobme(Nav):
         # lista_indices = [indice.text for indice in t_indices.find_elements(By.TAG_NAME, 'li') if indice.text != 'Todos']
         # t_indices.click()
         self.__esperar_carregamento()
-        self._find_element(By.ID, 'txtData').send_keys(date.strftime('%d%m%Y'))
-        self._find_element(By.XPATH, '//*[@id="Content"]/section/div[2]/div/div/div[1]/h4').click()
-
-        self.__esperar_carregamento()
-        t_body = self._find_element(By.ID, 'tblIndiceAprovacao')
+        
+        self._find_element(By.ID, 'txtData').click()
+        
+        date_select = self._find_element(By.ID, 'ui-datepicker-div')
+        Select(date_select.find_elements(By.TAG_NAME, 'select')[0]).select_by_value(str(date.month-1))
+        Select(date_select.find_elements(By.TAG_NAME, 'select')[1]).select_by_value(str(date.year))
+        
+        for button in date_select.find_elements(By.TAG_NAME, 'button'):
+            if button.text == "Aplicar":
+                button.click()
+                break
+            
+        self.__esperar_carregamento(initial_wait=5)
+        
+        t_body = self._find_element(By.ID, 'result-table_wrapper')
         
         for status in t_body.find_elements(By.TAG_NAME, 'tr'):
             for indice in lista_indices:

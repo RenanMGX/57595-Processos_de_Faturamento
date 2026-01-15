@@ -105,7 +105,7 @@ class Processos:
         if date is None:
             date = self.date
         print(P(f"Executando Imobme cobrança global em {date.strftime('%d/%m/%Y')}", color='yellow'))
-        
+        #import pdb; pdb.set_trace()
         if (not self.etapa.executed_month(etapa) or etapa == ""):
             bot = Imobme()
             if bot.verificar_indices(date=utils.primeiro_dia_penultimo_mes(date), lista_indices=lista_indices):
