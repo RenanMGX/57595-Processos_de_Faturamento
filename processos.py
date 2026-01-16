@@ -649,7 +649,7 @@ class Processos:
                 df:pd.DataFrame = TratarDados.generate_df_with_emails(df_clientes=df_clientes, df_previsaoReceita=df_previsaoReceita, saved_copy_path=self.__relat_final_path)
                 
                 df = df[~df['Email'].isna()]
-                
+                print(f"{self.pasta=}")
                 emails_to_send, df_files_not_found, informe_relat_final, paths_relat_final = TratarDados.generate_files_to_send(df=df, path=self.pasta)
                 
                 df_relat_final = pd.read_excel(self.__relat_final_path)

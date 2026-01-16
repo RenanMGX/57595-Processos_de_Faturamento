@@ -123,9 +123,10 @@ def set_lock(l):
 class EmailToClient:
     @staticmethod
     def send(_file: tuple, mensagem_html_path:str, emails_to_delete_path:str, email_origin:Literal['email', 'email_debug'] = 'email'):
-        email:str|list = _file[0]
+        #email:str|list = _file[0]
         dados:dict = _file[1]
-        
+        email = dados['email']
+                
         for _ in range(5):
             try:
                 

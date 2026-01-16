@@ -127,10 +127,18 @@ class TratarDados:
             parcela = value['Parcela']
             parcela = str(int(parcela)) if isinstance(parcela, float) else parcela
             
-            temp_file = f"{value['Código Empreendimento']}-{bloco}-{value['Unidade']}-{mes}-{ano}-{value['Série']}-{parcela}-{int(value['Documento'])}.pdf"
+            #r"{GSBER}-{BLOCO}-{UNIDADE}-{MES_VENC}-{ANO_VENC}-{SERIE}-{PARCELA}-{BELNR}.pdf"
+            #r"{GSBER}-{BLOCO}-{UNIDADE}-{MES_VENC}-{ANO_VENC}-{BELNR}.pdf"
+
+            
+            temp_file = f"{value['Código Empreendimento']}-{bloco}-{value['Unidade']}-{mes}-{ano}-{int(value['Documento'])}.pdf"
             temp_file_path = os.path.join(path, temp_file)
-            temp_file2 = f"{value['Código Empreendimento']}-{bloco2}-{value['Unidade']}-{mes}-{ano}-{value['Série']}-{parcela}-{int(value['Documento'])}.pdf"
+            temp_file2 = f"{value['Código Empreendimento']}-{bloco2}-{value['Unidade']}-{mes}-{ano}-{int(value['Documento'])}.pdf"
             temp_file2_path = os.path.join(path, temp_file2)    
+            # temp_file = f"{value['Código Empreendimento']}-{bloco}-{value['Unidade']}-{mes}-{ano}-{value['Série']}-{parcela}-{int(value['Documento'])}.pdf"
+            # temp_file_path = os.path.join(path, temp_file)
+            # temp_file2 = f"{value['Código Empreendimento']}-{bloco2}-{value['Unidade']}-{mes}-{ano}-{value['Série']}-{parcela}-{int(value['Documento'])}.pdf"
+            # temp_file2_path = os.path.join(path, temp_file2)    
 
             #import pdb; pdb.set_trace()
             
@@ -140,24 +148,28 @@ class TratarDados:
                 file = temp_file2_path
             else:
                 file = None
-                
+
+            key = f"{value['Email']}<--{value['Bloco']}|{str(value['Unidade'])}-->"
+            #key = value['Email']
+            
             if file:
-                try:
-                    emails_to_send[value['Email']]
+                try:                    
+                    emails_to_send[key]
                 except KeyError:
-                    emails_to_send[value['Email']] = {}    
+                    emails_to_send[key] = {}    
                 
                 try:
-                    emails_to_send[value['Email']]["files"].append(file) #type: ignore
+                    emails_to_send[key]["files"].append(file) #type: ignore
                 except KeyError:
-                    emails_to_send[value['Email']]["files"] = [file] 
+                    emails_to_send[key]["files"] = [file] 
                 
-                emails_to_send[value['Email']]["nome"] = value['Cliente Principal']
-                emails_to_send[value['Email']]["empreendimento"] = value['Empreendimento']
-                emails_to_send[value['Email']]["date"] = value['Data Vencimento'].strftime('%B/%Y').capitalize()
-                emails_to_send[value['Email']]["bloco"] = value['Bloco']
-                emails_to_send[value['Email']]["unidade"] = str(value['Unidade'])
-                emails_to_send[value['Email']]["empresa"] = value['Código SPE']
+                emails_to_send[key]["nome"] = value['Cliente Principal']
+                emails_to_send[key]["empreendimento"] = value['Empreendimento']
+                emails_to_send[key]["date"] = value['Data Vencimento'].strftime('%B/%Y').capitalize()
+                emails_to_send[key]["bloco"] = value['Bloco']
+                emails_to_send[key]["unidade"] = str(value['Unidade'])
+                emails_to_send[key]["empresa"] = value['Código SPE']
+                emails_to_send[key]["email"] = value['Email']
                 
                 status_relat_final.append("Enviado")
                 paths_relat_final.append(file)

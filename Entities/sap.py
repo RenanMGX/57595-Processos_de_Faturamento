@@ -107,7 +107,8 @@ class SAP(SAPManipulation):
             self.session.findById("wnd[0]/usr/ctxtP_VENFIM").text = utils.ultimo_dia_mes(date).strftime("%d.%m.%Y")#"28.02.2025"
             
             self.session.findById("wnd[0]/usr/ctxtP_PASTA").text = pasta # PASTA TEMPORARIA PARA DESENVOLVIMENTO
-            self.session.findById("wnd[0]/usr/txtP_ARQ").text = r"{GSBER}-{BLOCO}-{UNIDADE}-{MES_VENC}-{ANO_VENC}-{SERIE}-{PARCELA}-{BELNR}.pdf"
+            #self.session.findById("wnd[0]/usr/txtP_ARQ").text = r"{GSBER}-{BLOCO}-{UNIDADE}-{MES_VENC}-{ANO_VENC}-{SERIE}-{PARCELA}-{BELNR}.pdf"
+            self.session.findById("wnd[0]/usr/txtP_ARQ").text = r"{GSBER}-{BLOCO}-{UNIDADE}-{MES_VENC}-{ANO_VENC}-{BELNR}.pdf"
 
             # apenas para desenvolvimento Remover depois
             if debug:
