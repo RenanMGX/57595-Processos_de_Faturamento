@@ -718,7 +718,7 @@ class Processos:
                     utils.jsonFile.write(self.emails_to_delete_path, data=[])
                 else:
                     for value in utils.jsonFile.read(self.emails_to_delete_path):
-                        emails_to_send.pop(value)
+                        emails_to_send.pop(value, None)
                     utils.jsonFile.write(self.emails_to_delete_path, data=[])
                     utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
                 
@@ -744,7 +744,7 @@ class Processos:
                 sleep(2)
                 
                 for value in utils.jsonFile.read(self.emails_to_delete_path):
-                    emails_to_send.pop(value)
+                    emails_to_send.pop(value, None)
                 utils.jsonFile.write(self.emails_to_delete_path, data=[])
                 utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
                 
