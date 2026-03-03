@@ -112,8 +112,10 @@ def cripto(pdf_paths:list):
             if pdf.CPF_CNPJ:
                 pdf.proteger_pdf()
                 print(P(f"    Criptografado: {pdf.CPF_CNPJ} - {os.path.basename(file_path)}", color='yellow'))
+                Logs().register(status='Report', description=f'Criptografado: {pdf.CPF_CNPJ} - {os.path.basename(file_path)}')
             else:
                 print(P(f"    Não criptografado: {os.path.basename(file_path)}", color='red'))
+                Logs().register(status='Report', description=f'Não criptografado: {os.path.basename(file_path)}')
                 erros.append(f"Não criptografado: {os.path.basename(file_path)}")
 
         except Exception as err:

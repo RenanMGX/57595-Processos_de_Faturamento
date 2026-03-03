@@ -193,7 +193,7 @@ class EmailToClient:
                 
                 with lock: #type: ignore
                     emails_to_delete:list = utils.jsonFile.read(emails_to_delete_path)
-                    emails_to_delete.append(email)
+                    emails_to_delete.append(_file[0])
                     utils.jsonFile.write(emails_to_delete_path, emails_to_delete)
                 return
             except smtplib.SMTPDataError as e:
