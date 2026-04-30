@@ -63,10 +63,10 @@ class Execute:
         dotenv.unset_key(dotent_path, 'REMOVER_EMPRESAS')
         
 def teste():
-    date = datetime.now()
-    processos = Processos(utils.primeiro_dia_proximo_mes(date))
+    date = datetime(2026,2,20)
+    processos = Processos(utils.primeiro_dia_proximo_mes(date), debug=True)
 
-    processos.rel_partidas_individuais(etapa='2.rel_partidas_individuais', ultima_etapa='1.imobme_cobranca_global', remover_empresas=(empresa.split(";") if (empresa:=os.getenv("REMOVER_EMPRESAS")) else [])) # ETAPA 2 OK
+    processos.preparar_lista_envio_email(etapa='', extrair_relatorio=True)
 
     print("testado")   
     #input()    
