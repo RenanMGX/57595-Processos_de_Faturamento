@@ -624,13 +624,20 @@ class Processos:
                         for file in os.listdir(download_path):
                             os.unlink(os.path.join(download_path, file))
                 
+                imobme_error = False
                 if extrair_relatorio:
-                    bot = Imobme(download_path=download_path)                
-                    bot.extrair_previsaoReceita(initial_date=utils.primeiro_dia_mes(date), final_date=utils.ultimo_dia_mes(date))
-                    bot.close()
-                    del bot
+                    try:
+                        bot = Imobme(download_path=download_path)                
+                        bot.extrair_previsaoReceita(initial_date=utils.primeiro_dia_mes(date), final_date=utils.ultimo_dia_mes(date))
+                        bot.close()
+                        del bot
+                    except Exception as err:
+                        imobme_error = True
                 
                 file_prevReceita_path = [os.path.join(download_path, file) for file in os.listdir(download_path)]
+                if imobme_error:
+                    file_prevReceita_path = [r'C:\Users\rpa\PATRIMAR ENGENHARIA SA\RPA - Documentos\RPA - Dados\Relatorio_Imobme_Financeiro\ImobmePrevisaoReceita.json']
+                
                 if file_prevReceita_path:
                     file_prevReceita_path = file_prevReceita_path[0]
                 else:

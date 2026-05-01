@@ -74,11 +74,11 @@ class Imobme(Nav):
         
         print(P(f"    Navegador DownloadPath {download_path=}   ", color='yellow'))
         super().__init__(download_path=download_path, save_user=True, headless=headless)
+        self.maximize_window()
         
         self.__load_page('Autenticacao/Login')
         sleep(3)
         self.__load_page('Autenticacao/Login')
-        self.maximize_window()
         
     
     def __load_page(self, endpoint:str):

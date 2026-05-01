@@ -53,7 +53,7 @@ class Execute:
         processos.criptografar_boletos(etapa='8.2.criptografar_boletos', ultima_etapa='8.gerar_boletos') # Esperar liberação do Financeiro
 
         # Etapa 9
-        processos.preparar_lista_envio_email(etapa='9.preparar_lista_envio_email', ultima_etapa='8.2.criptografar_boletos')
+        processos.preparar_lista_envio_email(etapa='9.preparar_lista_envio_email', ultima_etapa='8.2.criptografar_boletos', extrair_relatorio=False)
         
         # Etapa 10
         processos.enviar_emails(finalizar=True, etapa='10.enviar_emails', ultima_etapa='9.preparar_lista_envio_email')

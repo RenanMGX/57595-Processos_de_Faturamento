@@ -49,24 +49,29 @@ class TratarDados:
     
     @staticmethod
     def load_previReceita(path:str) -> pd.DataFrame:
-        app = xw.App(visible=False)
-        wb = app.books.open(path)
-        
-        ws = wb.sheets[1]
-        
-        table = ws.range('A1').expand('table').value        
-        df = pd.DataFrame(table)
-        
-        df.columns = df.iloc[0]
-        df = df.iloc[1:]
-        
-        wb.close()
-        app.kill()
-        
-        sleep(1)
-        Functions.fechar_excel(path)
+        if path.endswith(('.xlsx', '.xls', '.xlsm')):
+            app = xw.App(visible=False)
+            wb = app.books.open(path)
+            
+            ws = wb.sheets[1]
+            
+            table = ws.range('A1').expand('table').value        
+            df = pd.DataFrame(table)
+            
+            df.columns = df.iloc[0]
+            df = df.iloc[1:]
+            
+            wb.close()
+            app.kill()
+            
+            sleep(1)
+            Functions.fechar_excel(path)
 
-        return df
+            return df
+        elif path.endswith('.json'):
+            return pd.read_json(path)
+        
+        raise ValueError("Formato de arquivo não suportado! O arquivo deve ser .xlsx, .xls, .xlsm ou .json")
     
     @staticmethod
     def generate_df_with_emails(*, df_clientes:pd.DataFrame, df_previsaoReceita:pd.DataFrame, saved_copy_path:str=""):
@@ -121,8 +126,11 @@ class TratarDados:
             bloco:str = str(value['Código Bloco'])
             bloco2 = bloco[1:] if bloco.startswith('0') else bloco.zfill(2)
 
-            mes = str(value['Data Vencimento'].month).zfill(2)
-            ano = str(value['Data Vencimento'].year)
+            data_vencimento = value['Data Vencimento']
+            if isinstance(data_vencimento, str):
+                data_vencimento = pd.to_datetime(data_vencimento, dayfirst=True)
+            mes = str(data_vencimento.month).zfill(2)
+            ano = str(data_vencimento.year)
             
             parcela = value['Parcela']
             parcela = str(int(parcela)) if isinstance(parcela, float) else parcela
@@ -165,7 +173,7 @@ class TratarDados:
                 
                 emails_to_send[key]["nome"] = value['Cliente Principal']
                 emails_to_send[key]["empreendimento"] = value['Empreendimento']
-                emails_to_send[key]["date"] = value['Data Vencimento'].strftime('%B/%Y').capitalize()
+                emails_to_send[key]["date"] = data_vencimento.strftime('%B/%Y').capitalize()
                 emails_to_send[key]["bloco"] = value['Bloco']
                 emails_to_send[key]["unidade"] = str(value['Unidade'])
                 emails_to_send[key]["empresa"] = value['Código SPE']
