@@ -23,7 +23,7 @@ class TratarDados:
         except KeyError as err:
             raise KeyError(f"Colunas não encontradas! -> {err}")
         
-        empresas = df['Empresa'].dropna().unique().tolist()
+        empresas: List[str] = df['Empresa'].dropna().unique().tolist()
         bancos = df['Banco da empresa'].dropna().unique().tolist()
 
         docs = []
@@ -128,7 +128,7 @@ class TratarDados:
 
             data_vencimento = value['Data Vencimento']
             if isinstance(data_vencimento, str):
-                data_vencimento = pd.to_datetime(data_vencimento, dayfirst=True)
+                data_vencimento = pd.to_datetime(data_vencimento)
             mes = str(data_vencimento.month).zfill(2)
             ano = str(data_vencimento.year)
             
