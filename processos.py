@@ -12,6 +12,7 @@ from time import sleep
 from datetime import datetime
 from lista_indices import lista_indices
 from Entities.informativo import Informativo
+from patrimar_dependencies.sharepointfolder import SharePointFolders
 
 
 import Entities.utils as utils
@@ -633,10 +634,13 @@ class Processos:
                         del bot
                     except Exception as err:
                         imobme_error = True
+                else:
+                    imobme_error = True
                 
                 file_prevReceita_path = [os.path.join(download_path, file) for file in os.listdir(download_path)]
                 if imobme_error:
-                    file_prevReceita_path = [r'C:\Users\rpa\PATRIMAR ENGENHARIA SA\RPA - Documentos\RPA - Dados\Relatorio_Imobme_Financeiro\ImobmePrevisaoReceita.json']
+                    #file_prevReceita_path = [r'C:\Users\rpa\PATRIMAR ENGENHARIA SA\RPA - Documentos\RPA - Dados\Relatorio_Imobme_Financeiro\ImobmePrevisaoReceita.json']
+                    file_prevReceita_path = [os.path.join(SharePointFolders(r'RPA - Dados\Relatorio_Imobme_Financeiro').value, r'ImobmePrevisaoReceita.json')]
                 
                 if file_prevReceita_path:
                     file_prevReceita_path = file_prevReceita_path[0]
@@ -645,7 +649,14 @@ class Processos:
                     raise FileNotFoundError("Arquivo de previsão de receita não encontrado!")
                 
                 df_previsaoReceita = TratarDados.load_previReceita(file_prevReceita_path)
-                
+                ##############
+                df_previsaoReceita['Data Vencimento'] = pd.to_datetime(df_previsaoReceita['Data Vencimento'], errors='coerce')
+                df_previsaoReceita = df_previsaoReceita[
+                    (df_previsaoReceita['Data Vencimento'].dt.month == date.month) &
+                    (df_previsaoReceita['Data Vencimento'].dt.year == date.year)
+                ]
+                print(P(f"    Filtrado {len(df_previsaoReceita)} registros com vencimento em {date.strftime('%m/%Y')}", color='cyan'))
+                ##################
                 if os.path.exists(self.__relat_final_path):
                     try:
                         Functions.fechar_excel(self.__relat_final_path)
@@ -657,6 +668,8 @@ class Processos:
                 
                 df = df[~df['Email'].isna()]
                 print(f"{self.pasta=}")
+                #df.to_excel('teste.xlsx', index=False)
+                #return
                 emails_to_send, df_files_not_found, informe_relat_final, paths_relat_final = TratarDados.generate_files_to_send(df=df, path=self.pasta)
                 
                 df_relat_final = pd.read_excel(self.__relat_final_path)
@@ -690,7 +703,7 @@ class Processos:
                     
                 utils.jsonFile.write(self.emails_to_send_path, emails_to_send)
                 utils.jsonFile.write(self.emails_to_delete_path, [])
-                
+                #import pdb; pdb.set_trace()
                 self.etapa.save(etapa)
                 #self.informativo.sucess("Preparação de lista de envio de e-mails executada com sucesso!")
                 if finalizar:
