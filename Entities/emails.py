@@ -122,7 +122,7 @@ def set_lock(l):
         
 class EmailToClient:
     @staticmethod
-    def send(_file: tuple, mensagem_html_path:str, emails_to_delete_path:str, email_origin:Literal['email', 'email_debug'] = 'email'):
+    def send(_file: tuple, mensagem_html_path:str, emails_to_delete_path:str, email_origin:Literal['email', 'email_debug'] = 'email', debug:bool=False):
         #email:str|list = _file[0]
         dados:dict = _file[1]
         email = dados['email']
@@ -191,10 +191,13 @@ class EmailToClient:
                                 
                 send_email.send(msg_envio=f"    Email enviado para {email} - assunto: {assunto}")    
                 
-                with lock: #type: ignore
-                    emails_to_delete:list = utils.jsonFile.read(emails_to_delete_path)
-                    emails_to_delete.append(_file[0])
-                    utils.jsonFile.write(emails_to_delete_path, emails_to_delete)
+                if not debug:
+                    with lock: #type: ignore
+                        emails_to_delete:list = utils.jsonFile.read(emails_to_delete_path)
+                        emails_to_delete.append(_file[0])
+                        utils.jsonFile.write(emails_to_delete_path, emails_to_delete)
+                    
+                    
                 return
             except smtplib.SMTPDataError as e:
                 print(P(f"    Erro ao enviar email para {email} tentando novamente!", color='yellow'))
